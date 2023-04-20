@@ -293,10 +293,10 @@ void bm3d_1st_step(
         //! Update of table_2D
         if (tau_2D == DCT)
             dct_2d_process(table_2D, img_noisy, plan_2d_for_1, plan_2d_for_2, nHard,
-                           width, height, kHard, i_r, pHard, coef_norm,
+                           width, kHard, i_r, pHard, coef_norm,
                            row_ind[0], row_ind.back());
         else if (tau_2D == BIOR)
-            bior_2d_process(table_2D, img_noisy, nHard, width, height,
+            bior_2d_process(table_2D, img_noisy, nHard, width,
                             kHard, i_r, pHard, row_ind[0], row_ind.back(), lpd, hpd);
 
         wx_r_table.clear();
@@ -460,16 +460,16 @@ void bm3d_2nd_step(
         if (tau_2D == DCT)
         {
             dct_2d_process(table_2D_img, img_noisy, plan_2d_for_1, plan_2d_for_2,
-                           nWien, width, height, kWien, i_r, pWien, coef_norm,
+                           nWien, width, kWien, i_r, pWien, coef_norm,
                            row_ind[0], row_ind.back());
             dct_2d_process(table_2D_est, img_basic, plan_2d_for_1, plan_2d_for_2,
-                           nWien, width, height, kWien, i_r, pWien, coef_norm,
+                           nWien, width, kWien, i_r, pWien, coef_norm,
                            row_ind[0], row_ind.back());
         }
         else if (tau_2D == BIOR)
         {
-            bior_2d_process(table_2D_img, img_noisy, nWien, width, height, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
-            bior_2d_process(table_2D_est, img_basic, nWien, width, height,
+            bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
+            bior_2d_process(table_2D_est, img_basic, nWien, width,
                             kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
         }
 
@@ -569,7 +569,7 @@ void bm3d_2nd_step(
  * @param img : image on which the 2d DCT will be processed;
  * @param plan_1, plan_2 : for convenience. Used by fftw;
  * @param nHW : size of the boundary around img;
- * @param width, height: size of img;
+ * @param width: size of img;
  * @param kHW : size of patches (kHW x kHW);
  * @param i_r: current index of the reference patches;
  * @param step: space in pixels between two references patches;
@@ -581,7 +581,7 @@ void bm3d_2nd_step(
  **/
 void dct_2d_process(
     vector<float> &DCT_table_2D, vector<float> const &img, fftwf_plan *plan_1, fftwf_plan *plan_2, const unsigned nHW,
-    const unsigned width, const unsigned height, const unsigned kHW, const unsigned i_r,
+    const unsigned width, const unsigned kHW, const unsigned i_r,
     const unsigned step, vector<float> const &coef_norm, const unsigned i_min, const unsigned i_max)
 {
     //! Declarations
@@ -673,7 +673,7 @@ void dct_2d_process(
  * @param hpd : high pass filter of the forward bior1.5 2d transform.
  **/
 void bior_2d_process(
-    vector<float> &bior_table_2D, vector<float> const &img, const unsigned nHW, const unsigned width, const unsigned height, const unsigned kHW, const unsigned i_r, const unsigned step, const unsigned i_min, const unsigned i_max, vector<float> &lpd, vector<float> &hpd)
+    vector<float> &bior_table_2D, vector<float> const &img, const unsigned nHW, const unsigned width, const unsigned kHW, const unsigned i_r, const unsigned step, const unsigned i_min, const unsigned i_max, vector<float> &lpd, vector<float> &hpd)
 {
     //! Declarations
     const unsigned kHW_2 = kHW * kHW;

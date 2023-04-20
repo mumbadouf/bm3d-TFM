@@ -70,7 +70,7 @@ void dct_2d_process(
 ,   fftwf_plan * plan_2
 ,   const unsigned nHW
 ,   const unsigned width
-,   const unsigned height
+ 
  
 ,   const unsigned kHW
 ,   const unsigned i_r
@@ -86,7 +86,7 @@ void bior_2d_process(
 ,   std::vector<float> const& img
 ,   const unsigned nHW
 ,   const unsigned width
-,   const unsigned height
+
  
 ,   const unsigned kHW
 ,   const unsigned i_r
