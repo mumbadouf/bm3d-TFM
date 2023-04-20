@@ -242,12 +242,10 @@ void bm3d_1st_step(
     const bool useSD,
     const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
 {
-    //! Estimatation of sigma on each channel
-    vector<float> sigma_table(1);
-    sigma_table[0] = sigma;
+ 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                                       //! Threshold for Hard Thresholding
-    const float tauMatch = (3.f) * (sigma_table[0] < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
+    const float tauMatch = (3.f) * (sigma < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
 
     //! Initialization for convenience
     vector<unsigned> row_ind;
@@ -325,7 +323,7 @@ void bm3d_1st_step(
 
             //! HT filtering of the 3D group
             vector<float> weight_table(1);
-            ht_filtering_hadamard(group_3D, hadamard_tmp, nSx_r, kHard, sigma_table,
+            ht_filtering_hadamard(group_3D, hadamard_tmp, nSx_r, kHard, sigma,
                                   lambdaHard3D, weight_table, !useSD);
 
             //! 3D weighting using Standard Deviation
@@ -407,12 +405,8 @@ void bm3d_2nd_step(
     const unsigned width, const unsigned height, const unsigned nWien, const unsigned kWien, const unsigned NWien, const unsigned pWien, const bool useSD,
     const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
 {
-    //! Estimatation of sigma on each channel
-    vector<float> sigma_table(1);
-    sigma_table[0] = sigma;
-
     //! Parameters initialization
-    const float tauMatch = (sigma_table[0] < 35.0f ? 400 : 3500); //! threshold used to determinate similarity between patches
+    const float tauMatch = (sigma< 35.0f ? 400 : 3500); //! threshold used to determinate similarity between patches
 
     //! Initialization for convenience
     vector<unsigned> row_ind;
@@ -505,7 +499,7 @@ void bm3d_2nd_step(
             //! Wiener filtering of the 3D group
             vector<float> weight_table(1);
             wiener_filtering_hadamard(group_3D_img, group_3D_est, tmp, nSx_r, kWien,
-                                      sigma_table, weight_table, !useSD);
+                                      sigma, weight_table, !useSD);
 
             //! 3D weighting using Standard Deviation
             if (useSD)
@@ -720,7 +714,7 @@ void bior_2d_process(
  * @param tmp: allocated vector used in Hadamard transform for convenience;
  * @param nSx_r : number of similar patches to a reference one;
  * @param kHW : size of patches (kHW x kHW);
- * @param sigma_table : contains value of noise for each channel;
+ * @param sigma : contains value of noise for each channel;
  * @param lambdaHard3D : value of thresholding;
  * @param weight_table: the weighting of this 3D group for each channel;
  * @param doWeight: if true process the weighting, do nothing
@@ -729,7 +723,7 @@ void bior_2d_process(
  * @return none.
  **/
 void ht_filtering_hadamard(
-    vector<float> &group_3D, vector<float> &tmp, const unsigned nSx_r, const unsigned kHard, vector<float> const &sigma_table, const float lambdaHard3D, vector<float> &weight_table, const bool doWeight)
+    vector<float> &group_3D, vector<float> &tmp, const unsigned nSx_r, const unsigned kHard, const float  sigma, const float lambdaHard3D, vector<float> &weight_table, const bool doWeight)
 {
     //! Declarations
     const unsigned kHard_2 = kHard * kHard;
@@ -744,7 +738,7 @@ void ht_filtering_hadamard(
 
     //! Hard Thresholding
 
-    const float T = lambdaHard3D * sigma_table[0] * coef_norm;
+    const float T = lambdaHard3D * sigma * coef_norm;
     for (unsigned k = 0; k < kHard_2 * nSx_r; k++)
     {
 #ifdef DCTHRESH
@@ -766,7 +760,7 @@ void ht_filtering_hadamard(
 
     //! Weight for aggregation
     if (doWeight)
-        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma_table[0] * sigma_table[0] * weight_table[0]) : 1.0f);
+        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma* sigma * weight_table[0]) : 1.0f);
 }
 
 /**
@@ -777,7 +771,7 @@ void ht_filtering_hadamard(
  * @param tmp: allocated vector used in hadamard transform for convenience;
  * @param nSx_r : number of similar patches to a reference one;
  * @param kWien : size of patches (kWien x kWien);
- * @param sigma_table : contains value of noise for each channel;
+ * @param sigma : contains value of noise for each channel;
  * @param weight_table: the weighting of this 3D group for each channel;
  * @param doWeight: if true process the weighting, do nothing
  *        otherwise.
@@ -785,7 +779,7 @@ void ht_filtering_hadamard(
  * @return none.
  **/
 void wiener_filtering_hadamard(
-    vector<float> &group_3D_img, vector<float> &group_3D_est, vector<float> &tmp, const unsigned nSx_r, const unsigned kWien, vector<float> const &sigma_table, vector<float> &weight_table, const bool doWeight)
+    vector<float> &group_3D_img, vector<float> &group_3D_est, vector<float> &tmp, const unsigned nSx_r, const unsigned kWien, const float sigma, vector<float> &weight_table, const bool doWeight)
 {
     //! Declarations
     const unsigned kWien_2 = kWien * kWien;
@@ -811,7 +805,7 @@ void wiener_filtering_hadamard(
 #endif
     {
         float value = group_3D_est[k] * group_3D_est[k] * coef;
-        value /= (value + sigma_table[0] * sigma_table[0]);
+        value /= (value + sigma * sigma);
         group_3D_est[k] = group_3D_img[k] * value * coef;
         weight_table[0] += (value * value);
     }
@@ -822,7 +816,7 @@ void wiener_filtering_hadamard(
 
     //! Weight for aggregation
     if (doWeight)
-        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma_table[0] * sigma_table[0] * weight_table[0]) : 1.0f);
+        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma * sigma * weight_table[0]) : 1.0f);
 }
 
 /**

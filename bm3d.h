@@ -121,7 +121,7 @@ void ht_filtering_hadamard(
 ,   const unsigned nSx_r
 ,   const unsigned kHard
  
-,   std::vector<float> const& sigma_table
+,   const float  sigma
 ,   const float lambdaThr3D
 ,   std::vector<float> &weight_table
 ,   const bool doWeight
@@ -135,7 +135,7 @@ void wiener_filtering_hadamard(
 ,   const unsigned nSx_r
 ,   const unsigned kWien
  
-,   std::vector<float> const& sigma_table
+,   const float  sigma
 ,   std::vector<float> &weight_table
 ,   const bool doWeight
 );
