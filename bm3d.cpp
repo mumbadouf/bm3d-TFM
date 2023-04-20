@@ -27,12 +27,6 @@
 
 #define SQRT2 1.414213562373095
 #define SQRT2_INV 0.7071067811865475
-#define YUV 0
-#define YCBCR 1
-#define OPP 2
-#define RGB 3
-#define DCT 4
-#define BIOR 5
 #define HADAMARD 6
 
 /*
@@ -87,11 +81,6 @@ int run_bm3d(
     vector<float> &img_denoised,
     const unsigned width,
     const unsigned height,
-    const bool useSD_h,
-    const bool useSD_w,
-    const unsigned tau_2D_hard,
-    const unsigned tau_2D_wien,
-
     const unsigned patch_size,
     const bool verbose)
 {
@@ -102,26 +91,10 @@ int run_bm3d(
     const unsigned NWien = 32; //! Must be a power of 2
     const unsigned pHard = 3;
     const unsigned pWien = 3;
-    // patch_size must be larger than 0
-    if (patch_size == 0)
-    {
-        if (verbose)
-            cout << "Parameter patch_size is selected automatically (8 or 12)." << endl;
-    }
-    else
-    {
-        // patch_size must be a power of 2 if tau_2D_* == BIOR
-        if ((tau_2D_hard == BIOR ||
-             tau_2D_wien == BIOR) &&
-            (patch_size & (patch_size - 1)) != 0)
-        {
-            cout << "Parameter patch_size must be a power of 2 if tau_2D_* == BIOR" << endl;
-            return EXIT_FAILURE;
-        }
-    }
+
     //! Overrides size if patch_size>0, else default behavior (8 or 12 depending on test)
-    const unsigned kHard = patch_size > 0 ? patch_size : ((tau_2D_hard == BIOR || sigma < 40.f) ? 8 : 12);
-    const unsigned kWien = patch_size > 0 ? patch_size : ((tau_2D_wien == BIOR || sigma < 40.f) ? 8 : 12);
+    const unsigned kHard = patch_size;
+    const unsigned kWien = patch_size;
 
     //! Check memory allocation
     if (img_basic.size() != img_noisy.size())
@@ -129,35 +102,17 @@ int run_bm3d(
     if (img_denoised.size() != img_noisy.size())
         img_denoised.resize(img_noisy.size());
 
-    //! Allocate plan for FFTW library
-    fftwf_plan plan_2d_for_1[1];
-    fftwf_plan plan_2d_for_2[1];
-    fftwf_plan plan_2d_inv[1];
-
     //! Add boundaries and symetrize them
     const unsigned h_b = height + 2 * nHard;
     const unsigned w_b = width + 2 * nHard;
     vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
     symetrize(img_noisy, img_sym_noisy, width, height, nHard);
 
-    //! Allocating Plan for FFTW process
-    if (tau_2D_hard == DCT)
-    {
-        const unsigned nb_cols = ind_size(w_b - kHard + 1, nHard, pHard);
-        allocate_plan_2d(&plan_2d_for_1[0], kHard, FFTW_REDFT10,
-                         w_b * (2 * nHard + 1));
-        allocate_plan_2d(&plan_2d_for_2[0], kHard, FFTW_REDFT10,
-                         w_b * pHard);
-        allocate_plan_2d(&plan_2d_inv[0], kHard, FFTW_REDFT01,
-                         NHard * nb_cols);
-    }
-
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";
     bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, nHard,
-                  kHard, NHard, pHard, useSD_h, tau_2D_hard,
-                  &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
+                  kHard, NHard, pHard);
     if (verbose)
         cout << "is done." << endl;
 
@@ -171,24 +126,11 @@ int run_bm3d(
 
     symetrize(img_basic, img_sym_basic, width, height, nHard);
 
-    //! Allocating Plan for FFTW process
-    if (tau_2D_wien == DCT)
-    {
-        const unsigned nb_cols = ind_size(w_b - kWien + 1, nWien, pWien);
-        allocate_plan_2d(&plan_2d_for_1[0], kWien, FFTW_REDFT10,
-                         w_b * (2 * nWien + 1));
-        allocate_plan_2d(&plan_2d_for_2[0], kWien, FFTW_REDFT10,
-                         w_b * pWien);
-        allocate_plan_2d(&plan_2d_inv[0], kWien, FFTW_REDFT01,
-                         NWien * nb_cols);
-    }
-
     //! Denoising, 2nd Step
     if (verbose)
         cout << "BM3D 2nd step...";
     bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised,
-                  w_b, h_b, nWien, kWien, NWien, pWien, useSD_w,
-                  tau_2D_wien, &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
+                  w_b, h_b, nWien, kWien, NWien, pWien);
     if (verbose)
         cout << "is done." << endl;
 
@@ -199,20 +141,6 @@ int run_bm3d(
     for (unsigned i = 0; i < height; i++)
         for (unsigned j = 0; j < width; j++, dc++)
             img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
-
-    //! Free Memory
-    if (verbose)
-        cout << "fftwf free..." << endl;
-    if (tau_2D_hard == DCT || tau_2D_wien == DCT)
-    {
-        fftwf_destroy_plan(plan_2d_for_1[0]);
-        fftwf_destroy_plan(plan_2d_for_2[0]);
-        fftwf_destroy_plan(plan_2d_inv[0]);
-    }
-
-    fftwf_cleanup();
-    if (verbose)
-        cout << "is done." << endl;
     return EXIT_SUCCESS;
 }
 
@@ -230,7 +158,7 @@ int run_bm3d(
  * @param useSD: if true, use weight based on the standard variation
  *        of the 3D group for the first step, otherwise use the number
  *        of non-zero coefficients after Hard-thresholding;
- * @param tau_2D: DCT or BIOR;
+
  * @param plan_2d_for_1, plan_2d_for_2, plan_2d_inv : for convenience. Used
  *        by fftw.
  *
@@ -238,13 +166,11 @@ int run_bm3d(
  **/
 void bm3d_1st_step(
     const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width, const unsigned height,
-    const unsigned nHard, const unsigned kHard, const unsigned NHard, const unsigned pHard,
-    const bool useSD,
-    const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
+    const unsigned nHard, const unsigned kHard, const unsigned NHard, const unsigned pHard)
 {
- 
+
     //! Parameters initialization
-    const float lambdaHard3D = 2.7f;                                       //! Threshold for Hard Thresholding
+    const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
     const float tauMatch = (3.f) * (sigma < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
 
     //! Initialization for convenience
@@ -289,13 +215,8 @@ void bm3d_1st_step(
         const unsigned i_r = row_ind[ind_i];
 
         //! Update of table_2D
-        if (tau_2D == DCT)
-            dct_2d_process(table_2D, img_noisy, plan_2d_for_1, plan_2d_for_2, nHard,
-                           width, kHard, i_r, pHard, coef_norm,
-                           row_ind[0], row_ind.back());
-        else if (tau_2D == BIOR)
-            bior_2d_process(table_2D, img_noisy, nHard, width,
-                            kHard, i_r, pHard, row_ind[0], row_ind.back(), lpd, hpd);
+        bior_2d_process(table_2D, img_noisy, nHard, width,
+                        kHard, i_r, pHard, row_ind[0], row_ind.back(), lpd, hpd);
 
         wx_r_table.clear();
         group_3D_table.clear();
@@ -322,13 +243,9 @@ void bm3d_1st_step(
             }
 
             //! HT filtering of the 3D group
-            vector<float> weight_table(1);
+            float weight;
             ht_filtering_hadamard(group_3D, hadamard_tmp, nSx_r, kHard, sigma,
-                                  lambdaHard3D, weight_table, !useSD);
-
-            //! 3D weighting using Standard Deviation
-            if (useSD)
-                sd_weighting(group_3D, nSx_r, kHard, weight_table);
+                                  lambdaHard3D, &weight);
 
             //! Save the 3D group. The DCT 2D inverse will be done after.
 
@@ -339,16 +256,12 @@ void bm3d_1st_step(
 
             //! Save weighting
 
-            wx_r_table.push_back(weight_table[0]);
+            wx_r_table.push_back(weight);
 
         } //! End of loop on j_r
 
         //!  Apply 2D inverse transform
-        if (tau_2D == DCT)
-            dct_2d_inverse(group_3D_table, kHard, NHard * column_ind.size(),
-                           coef_norm_inv, plan_2d_inv);
-        else if (tau_2D == BIOR)
-            bior_2d_inverse(group_3D_table, kHard, lpr, hpr);
+        bior_2d_inverse(group_3D_table, kHard, lpr, hpr);
 
         //! Registration of the weighted estimation
         unsigned dec = 0;
@@ -396,17 +309,16 @@ void bm3d_1st_step(
  * @param useSD: if true, use weight based on the standard variation
  *        of the 3D group for the second step, otherwise use the norm
  *        of Wiener coefficients of the 3D group;
- * @param tau_2D: DCT or BIOR.
+
  *
  * @return none.
  **/
 void bm3d_2nd_step(
     const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic, vector<float> &img_denoised,
-    const unsigned width, const unsigned height, const unsigned nWien, const unsigned kWien, const unsigned NWien, const unsigned pWien, const bool useSD,
-    const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
+    const unsigned width, const unsigned height, const unsigned nWien, const unsigned kWien, const unsigned NWien, const unsigned pWien)
 {
     //! Parameters initialization
-    const float tauMatch = (sigma< 35.0f ? 400 : 3500); //! threshold used to determinate similarity between patches
+    const float tauMatch = (sigma < 35.0f ? 400 : 3500); //! threshold used to determinate similarity between patches
 
     //! Initialization for convenience
     vector<unsigned> row_ind;
@@ -451,21 +363,9 @@ void bm3d_2nd_step(
         const unsigned i_r = row_ind[ind_i];
 
         //! Update of DCT_table_2D
-        if (tau_2D == DCT)
-        {
-            dct_2d_process(table_2D_img, img_noisy, plan_2d_for_1, plan_2d_for_2,
-                           nWien, width, kWien, i_r, pWien, coef_norm,
-                           row_ind[0], row_ind.back());
-            dct_2d_process(table_2D_est, img_basic, plan_2d_for_1, plan_2d_for_2,
-                           nWien, width, kWien, i_r, pWien, coef_norm,
-                           row_ind[0], row_ind.back());
-        }
-        else if (tau_2D == BIOR)
-        {
-            bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
-            bior_2d_process(table_2D_est, img_basic, nWien, width,
-                            kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
-        }
+        bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
+        bior_2d_process(table_2D_est, img_basic, nWien, width,
+                        kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
 
         wx_r_table.clear();
         group_3D_table.clear();
@@ -497,13 +397,9 @@ void bm3d_2nd_step(
             }
 
             //! Wiener filtering of the 3D group
-            vector<float> weight_table(1);
+            float weight;
             wiener_filtering_hadamard(group_3D_img, group_3D_est, tmp, nSx_r, kWien,
-                                      sigma, weight_table, !useSD);
-
-            //! 3D weighting using Standard Deviation
-            if (useSD)
-                sd_weighting(group_3D_est, nSx_r, kWien, weight_table);
+                                      sigma, &weight);
 
             //! Save the 3D group. The DCT 2D inverse will be done after.
 
@@ -513,16 +409,12 @@ void bm3d_2nd_step(
 
             //! Save weighting
 
-            wx_r_table.push_back(weight_table[0]);
+            wx_r_table.push_back(weight);
 
         } //! End of loop on j_r
 
-        //!  Apply 2D dct inverse
-        if (tau_2D == DCT)
-            dct_2d_inverse(group_3D_table, kWien, NWien * column_ind.size(),
-                           coef_norm_inv, plan_2d_inv);
-        else if (tau_2D == BIOR)
-            bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
+        //!  Apply 2D bior inverse
+        bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
 
         //! Registration of the weighted estimation
         unsigned dec = 0;
@@ -552,99 +444,6 @@ void bm3d_2nd_step(
     //! Final reconstruction
     for (unsigned k = 0; k < width * height; k++)
         img_denoised[k] = numerator[k] / denominator[k];
-}
-
-/**
- * @brief Precompute a 2D DCT transform on all patches contained in
- *        a part of the image.
- *
- * @param DCT_table_2D : will contain the 2d DCT transform for all
- *        chosen patches;
- * @param img : image on which the 2d DCT will be processed;
- * @param plan_1, plan_2 : for convenience. Used by fftw;
- * @param nHW : size of the boundary around img;
- * @param width: size of img;
- * @param kHW : size of patches (kHW x kHW);
- * @param i_r: current index of the reference patches;
- * @param step: space in pixels between two references patches;
- * @param coef_norm : normalization coefficients of the 2D DCT;
- * @param i_min (resp. i_max) : minimum (resp. maximum) value
- *        for i_r. In this case the whole 2d transform is applied
- *        on every patches. Otherwise the precomputed 2d DCT is re-used
- *        without processing it.
- **/
-void dct_2d_process(
-    vector<float> &DCT_table_2D, vector<float> const &img, fftwf_plan *plan_1, fftwf_plan *plan_2, const unsigned nHW,
-    const unsigned width, const unsigned kHW, const unsigned i_r,
-    const unsigned step, vector<float> const &coef_norm, const unsigned i_min, const unsigned i_max)
-{
-    //! Declarations
-    const unsigned kHW_2 = kHW * kHW;
-    const unsigned size = kHW_2 * width * (2 * nHW + 1);
-
-    //! If i_r == ns, then we have to process all DCT
-    if (i_r == i_min || i_r == i_max)
-    {
-        //! Allocating Memory
-        float *vec = (float *)fftwf_malloc(size * sizeof(float));
-        float *dct = (float *)fftwf_malloc(size * sizeof(float));
-
-        unsigned dc_p = 0;
-        for (unsigned i = 0; i < 2 * nHW + 1; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned p = 0; p < kHW; p++)
-                    for (unsigned q = 0; q < kHW; q++)
-                        vec[p * kHW + q + dc_p + (i * width + j) * kHW_2] =
-                            img[(i_r + i - nHW + p) * width + j + q];
-
-        //! Process of all DCTs
-        fftwf_execute_r2r(*plan_1, vec, dct);
-        fftwf_free(vec);
-
-        //! Getting the result
-        for (unsigned i = 0; i < 2 * nHW + 1; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    DCT_table_2D[(i * width + j) * kHW_2 + k] =
-                        dct[(i * width + j) * kHW_2 + k] * coef_norm[k];
-
-        fftwf_free(dct);
-    }
-    else
-    {
-        const unsigned ds = step * width * kHW_2;
-
-        //! Re-use of DCT already processed
-        for (unsigned i = 0; i < 2 * nHW + 1 - step; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    DCT_table_2D[k + (i * width + j) * kHW_2] =
-                        DCT_table_2D[k + (i * width + j) * kHW_2 + ds];
-
-        //! Compute the new DCT
-        float *vec = (float *)fftwf_malloc(kHW_2 * step * width * sizeof(float));
-        float *dct = (float *)fftwf_malloc(kHW_2 * step * width * sizeof(float));
-
-        for (unsigned i = 0; i < step; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned p = 0; p < kHW; p++)
-                    for (unsigned q = 0; q < kHW; q++)
-                        vec[p * kHW + q + (i * width + j) * kHW_2] =
-                            img[(p + i + 2 * nHW + 1 - step + i_r - nHW) * width + j + q];
-
-        //! Process of all DCTs
-        fftwf_execute_r2r(*plan_2, vec, dct);
-        fftwf_free(vec);
-
-        //! Getting the result
-        for (unsigned i = 0; i < step; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    DCT_table_2D[((i + 2 * nHW + 1 - step) * width + j) * kHW_2 + k] =
-                        dct[(i * width + j) * kHW_2 + k] * coef_norm[k];
-
-        fftwf_free(dct);
-    }
 }
 
 /**
@@ -716,19 +515,19 @@ void bior_2d_process(
  * @param kHW : size of patches (kHW x kHW);
  * @param sigma : contains value of noise for each channel;
  * @param lambdaHard3D : value of thresholding;
- * @param weight_table: the weighting of this 3D group for each channel;
+ * @param weight: the weighting of this 3D group for each channel;
  * @param doWeight: if true process the weighting, do nothing
  *        otherwise.
  *
  * @return none.
  **/
 void ht_filtering_hadamard(
-    vector<float> &group_3D, vector<float> &tmp, const unsigned nSx_r, const unsigned kHard, const float  sigma, const float lambdaHard3D, vector<float> &weight_table, const bool doWeight)
+    vector<float> &group_3D, vector<float> &tmp, const unsigned nSx_r, const unsigned kHard, const float sigma, const float lambdaHard3D, float *weight)
 {
     //! Declarations
     const unsigned kHard_2 = kHard * kHard;
 
-    weight_table[0] = 0.0f;
+    *weight = 0.0f;
     const float coef_norm = sqrtf((float)nSx_r);
     const float coef = 1.0f / (float)nSx_r;
 
@@ -746,7 +545,7 @@ void ht_filtering_hadamard(
 #else
         if (k < 1 || fabs(group_3D[k]) > T)
 #endif
-            weight_table[0]++;
+            (*weight)++;
         else
             group_3D[k] = 0.0f;
     }
@@ -759,8 +558,7 @@ void ht_filtering_hadamard(
         group_3D[k] *= coef;
 
     //! Weight for aggregation
-    if (doWeight)
-        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma* sigma * weight_table[0]) : 1.0f);
+    (*weight) = ((*weight) > 0.0f ? 1.0f / (float)(sigma * sigma * (*weight)) : 1.0f);
 }
 
 /**
@@ -772,20 +570,20 @@ void ht_filtering_hadamard(
  * @param nSx_r : number of similar patches to a reference one;
  * @param kWien : size of patches (kWien x kWien);
  * @param sigma : contains value of noise for each channel;
- * @param weight_table: the weighting of this 3D group for each channel;
+ * @param weight: the weighting of this 3D group for each channel;
  * @param doWeight: if true process the weighting, do nothing
  *        otherwise.
  *
  * @return none.
  **/
 void wiener_filtering_hadamard(
-    vector<float> &group_3D_img, vector<float> &group_3D_est, vector<float> &tmp, const unsigned nSx_r, const unsigned kWien, const float sigma, vector<float> &weight_table, const bool doWeight)
+    vector<float> &group_3D_img, vector<float> &group_3D_est, vector<float> &tmp, const unsigned nSx_r, const unsigned kWien, const float sigma, float *weight)
 {
     //! Declarations
     const unsigned kWien_2 = kWien * kWien;
     const float coef = 1.0f / (float)nSx_r;
 
-    weight_table[0] = 0.0f;
+    (*weight) = 0.0f;
 
     //! Process the Welsh-Hadamard transform on the 3rd dimension
     for (unsigned n = 0; n < kWien_2; n++)
@@ -800,14 +598,14 @@ void wiener_filtering_hadamard(
 #else
     group_3D_est[0] = group_3D_img[0] * coef;
     // Add the weight corresponding to the DC components that were not passed through the Wiener filter
-    weight_table[c] += 1;
+    (*weight) += 1;
     for (unsigned k = 1; k < kWien_2 * nSx_r; k++)
 #endif
     {
         float value = group_3D_est[k] * group_3D_est[k] * coef;
         value /= (value + sigma * sigma);
         group_3D_est[k] = group_3D_img[k] * value * coef;
-        weight_table[0] += (value * value);
+        (*weight) += (value * value);
     }
 
     //! Process of the Welsh-Hadamard inverse transform
@@ -815,48 +613,7 @@ void wiener_filtering_hadamard(
         hadamard_transform(group_3D_est, tmp, nSx_r, n * nSx_r);
 
     //! Weight for aggregation
-    if (doWeight)
-        weight_table[0] = (weight_table[0] > 0.0f ? 1.0f / (float)(sigma * sigma * weight_table[0]) : 1.0f);
-}
-
-/**
- * @brief Apply 2D dct inverse to a lot of patches.
- *
- * @param group_3D_table: contains a huge number of patches;
- * @param kHW : size of patch;
- * @param coef_norm_inv: contains normalization coefficients;
- * @param plan : for convenience. Used by fftw.
- *
- * @return none.
- **/
-void dct_2d_inverse(
-    vector<float> &group_3D_table, const unsigned kHW, const unsigned N, vector<float> const &coef_norm_inv, fftwf_plan *plan)
-{
-    //! Declarations
-    const unsigned kHW_2 = kHW * kHW;
-    const unsigned size = kHW_2 * N;
-    const unsigned Ns = group_3D_table.size() / kHW_2;
-
-    //! Allocate Memory
-    float *vec = (float *)fftwf_malloc(size * sizeof(float));
-    float *dct = (float *)fftwf_malloc(size * sizeof(float));
-
-    //! Normalization
-    for (unsigned n = 0; n < Ns; n++)
-        for (unsigned k = 0; k < kHW_2; k++)
-            dct[k + n * kHW_2] = group_3D_table[k + n * kHW_2] * coef_norm_inv[k];
-
-    //! 2D dct inverse
-    fftwf_execute_r2r(*plan, dct, vec);
-    fftwf_free(dct);
-
-    //! Getting the result + normalization
-    const float coef = 1.0f / (float)(kHW * 2);
-    for (unsigned k = 0; k < group_3D_table.size(); k++)
-        group_3D_table[k] = coef * vec[k];
-
-    //! Free Memory
-    fftwf_free(vec);
+    (*weight) = ((*weight) > 0.0f ? 1.0f / (float)(sigma * sigma * (*weight)) : 1.0f);
 }
 
 void bior_2d_inverse(
@@ -1140,39 +897,4 @@ void precompute_BM(
 #endif
         }
     }
-}
-
-/**
- * @brief Process of a weight dependent on the standard
- *        deviation, used during the weighted aggregation.
- *
- * @param group_3D : 3D group
- * @param nSx_r : number of similar patches in the 3D group
- * @param kHW: size of patches
- * @param weight_table: will contain the weighting for each
- *        channel.
- *
- * @return none.
- **/
-void sd_weighting(
-    std::vector<float> const &group_3D, const unsigned nSx_r, const unsigned kHW, std::vector<float> &weight_table)
-{
-    const unsigned N = nSx_r * kHW * kHW;
-
-    //! Initialization
-    float mean = 0.0f;
-    float std = 0.0f;
-
-    //! Compute the sum and the square sum
-    for (unsigned k = 0; k < N; k++)
-    {
-        mean += group_3D[k];
-        std += group_3D[k] * group_3D[k];
-    }
-
-    //! Sample standard deviation (Bessel's correction)
-    float res = (std - mean * mean / (float)N) / (float)(N - 1);
-
-    //! Return the weight as used in the aggregation
-    weight_table[0] = (res > 0.0f ? 1.0f / sqrtf(res) : 0.0f);
 }

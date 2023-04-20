@@ -1,7 +1,5 @@
 #ifndef BM3D_H_INCLUDED
 #define BM3D_H_INCLUDED
-
-#include <fftw3.h>
 #include <vector>
 
 /** ------------------ **/
@@ -15,10 +13,6 @@ int run_bm3d(
 ,   std::vector<float> &img_denoised
 ,   const unsigned width
 ,   const unsigned height
-,   const bool useSD_h
-,   const bool useSD_w
-,   const unsigned tau_2D_hard
-,   const unsigned tau_2D_wien
 ,   const unsigned patch_size = 0
 ,   const bool verbose = false
 );
@@ -30,16 +24,10 @@ void bm3d_1st_step(
 ,   std::vector<float> &img_basic
 ,   const unsigned width
 ,   const unsigned height
- 
 ,   const unsigned nHard
 ,   const unsigned kHard
 ,   const unsigned NHard
 ,   const unsigned pHard
-,   const bool     useSD
-,   const unsigned tau_2D
-,   fftwf_plan *  plan_2d_for_1
-,   fftwf_plan *  plan_2d_for_2
-,   fftwf_plan *  plan_2d_inv
 );
 
 //! 2nd step of BM3D
@@ -50,34 +38,10 @@ void bm3d_2nd_step(
 ,   std::vector<float> &img_denoised
 ,   const unsigned width
 ,   const unsigned height
- 
 ,   const unsigned nWien
 ,   const unsigned kWien
 ,   const unsigned NWien
 ,   const unsigned pWien
-,   const bool     useSD
-,   const unsigned tau_2D
-,   fftwf_plan *  plan_2d_for_1
-,   fftwf_plan *  plan_2d_for_2
-,   fftwf_plan *  plan_2d_inv
-);
-
-//! Process 2D dct of a group of patches
-void dct_2d_process(
-    std::vector<float> &DCT_table_2D
-,   std::vector<float> const& img
-,   fftwf_plan * plan_1
-,   fftwf_plan * plan_2
-,   const unsigned nHW
-,   const unsigned width
- 
- 
-,   const unsigned kHW
-,   const unsigned i_r
-,   const unsigned step
-,   std::vector<float> const& coef_norm
-,   const unsigned i_min
-,   const unsigned i_max
 );
 
 //! Process 2D bior1.5 transform of a group of patches
@@ -86,8 +50,6 @@ void bior_2d_process(
 ,   std::vector<float> const& img
 ,   const unsigned nHW
 ,   const unsigned width
-
- 
 ,   const unsigned kHW
 ,   const unsigned i_r
 ,   const unsigned step
@@ -95,14 +57,6 @@ void bior_2d_process(
 ,   const unsigned i_max
 ,   std::vector<float> &lpd
 ,   std::vector<float> &hpd
-);
-
-void dct_2d_inverse(
-    std::vector<float> &group_3D_table
-,   const unsigned kHW
-,   const unsigned N
-,   std::vector<float> const& coef_norm_inv
-,   fftwf_plan * plan
 );
 
 void bior_2d_inverse(
@@ -120,11 +74,9 @@ void ht_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kHard
- 
 ,   const float  sigma
 ,   const float lambdaThr3D
-,   std::vector<float> &weight_table
-,   const bool doWeight
+,   float * weight
 );
 
 //! Wiener filtering using Welsh-Hadamard transform
@@ -134,19 +86,8 @@ void wiener_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kWien
- 
 ,   const float  sigma
-,   std::vector<float> &weight_table
-,   const bool doWeight
-);
-
-//! Compute weighting using Standard Deviation
-void sd_weighting(
-    std::vector<float> const& group_3D
-,   const unsigned nSx_r
-,   const unsigned kHW
- 
-,   std::vector<float> &weight_table
+,   float * weight
 );
 
 //! Apply a bior1.5 spline wavelet on a vector of size N x N.

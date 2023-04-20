@@ -2,7 +2,6 @@
 #define UTILITIES_H_INCLUDED
 
 #include <vector>
-#include <fftw3.h>
 
 //! Read image and check number of channels
 int load_image(
@@ -68,22 +67,6 @@ unsigned ind_size(
     const unsigned max_size
 ,   const unsigned N
 ,   const unsigned step
-);
-
-//! Initialize a 2D fftwf_plan with some parameters
-void allocate_plan_2d(
-    fftwf_plan* plan
-,   const unsigned N
-,   const fftwf_r2r_kind kind
-,   const unsigned nb
-);
-
-//! Initialize a 1D fftwf_plan with some parameters
-void allocate_plan_1d(
-    fftwf_plan* plan
-,   const unsigned N
-,   const fftwf_r2r_kind kind
-,   const unsigned nb
 );
 
 //! Tabulated values of log2(2^n)

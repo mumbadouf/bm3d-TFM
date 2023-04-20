@@ -21,9 +21,13 @@ lib_transforms.h
 /home/hassan/Desktop/TFM/bm3d-master/lib_transforms.h
 
 /home/hassan/Desktop/TFM/bm3d-master/bm3d.h
-fftw3.h
--
 vector
+-
+
+/home/hassan/Desktop/TFM/bm3d-master/iio.h
+stdint.h
+-
+stdbool.h
 -
 
 /home/hassan/Desktop/TFM/bm3d-master/lib_transforms.h
@@ -52,9 +56,23 @@ bm3d.h
 utilities.h
 /home/hassan/Desktop/TFM/bm3d-master/utilities.h
 
+/home/hassan/Desktop/TFM/bm3d-master/utilities.cpp
+iostream
+-
+stdlib.h
+-
+time.h
+-
+unistd.h
+-
+math.h
+-
+utilities.h
+/home/hassan/Desktop/TFM/bm3d-master/utilities.h
+iio.h
+/home/hassan/Desktop/TFM/bm3d-master/iio.h
+
 /home/hassan/Desktop/TFM/bm3d-master/utilities.h
 vector
--
-fftw3.h
 -
 

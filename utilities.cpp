@@ -313,52 +313,6 @@ unsigned ind_size(
     return k;
 }
 
-/**
- * @brief Initialize a 2D fftwf_plan with some parameters
- *
- * @param plan: fftwf_plan to allocate;
- * @param N: size of the patch to apply the 2D transform;
- * @param kind: forward or backward;
- * @param nb: number of 2D transform which will be processed.
- *
- * @return none.
- **/
-void allocate_plan_2d(
-    fftwf_plan *plan, const unsigned N, const fftwf_r2r_kind kind, const unsigned nb)
-{
-    int nb_table[2] = {N, N};
-    int nembed[2] = {N, N};
-    fftwf_r2r_kind kind_table[2] = {kind, kind};
-
-    float *vec = (float *)fftwf_malloc(N * N * nb * sizeof(float));
-    (*plan) = fftwf_plan_many_r2r(2, nb_table, nb, vec, nembed, 1, N * N, vec,
-                                  nembed, 1, N * N, kind_table, FFTW_ESTIMATE);
-
-    fftwf_free(vec);
-}
-
-/**
- * @brief Initialize a 1D fftwf_plan with some parameters
- *
- * @param plan: fftwf_plan to allocate;
- * @param N: size of the vector to apply the 1D transform;
- * @param kind: forward or backward;
- * @param nb: number of 1D transform which will be processed.
- *
- * @return none.
- **/
-void allocate_plan_1d(
-    fftwf_plan *plan, const unsigned N, const fftwf_r2r_kind kind, const unsigned nb)
-{
-    int nb_table[1] = {N};
-    int nembed[1] = {N * nb};
-    fftwf_r2r_kind kind_table[1] = {kind};
-
-    float *vec = (float *)fftwf_malloc(N * nb * sizeof(float));
-    (*plan) = fftwf_plan_many_r2r(1, nb_table, nb, vec, nembed, 1, N, vec,
-                                  nembed, 1, N, kind_table, FFTW_ESTIMATE);
-    fftwf_free(vec);
-}
 
 /**
  * @brief tabulated values of log2(N), where N = 2 ^ n.
