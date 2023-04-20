@@ -64,7 +64,7 @@ bool ComparaisonFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
  * @param img_noisy: noisy image;
  * @param img_basic: will be the basic estimation after the 1st step
  * @param img_denoised: will be the denoised final image;
- * @param width, height, chnls: size of the image;
+ * @param width, height: size of the image;
  * @param useSD_h (resp. useSD_w): if true, use weight based
  *        on the standard variation of the 3D group for the
  *        first (resp. second) step, otherwise use the number
@@ -87,7 +87,6 @@ int run_bm3d(
     vector<float> &img_denoised,
     const unsigned width,
     const unsigned height,
-    const unsigned chnls,
     const bool useSD_h,
     const bool useSD_w,
     const unsigned tau_2D_hard,
@@ -103,6 +102,7 @@ int run_bm3d(
     const unsigned NWien = 32; //! Must be a power of 2
     const unsigned pHard = 3;
     const unsigned pWien = 3;
+    const unsigned chnls = 1;
     // patch_size must be larger than 0
     if (patch_size == 0)
     {
@@ -139,18 +139,18 @@ int run_bm3d(
     const unsigned h_b = height + 2 * nHard;
     const unsigned w_b = width + 2 * nHard;
     vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
-    symetrize(img_noisy, img_sym_noisy, width, height, chnls, nHard);
+    symetrize(img_noisy, img_sym_noisy, width, height, nHard);
 
     //! Allocating Plan for FFTW process
     if (tau_2D_hard == DCT)
     {
         const unsigned nb_cols = ind_size(w_b - kHard + 1, nHard, pHard);
         allocate_plan_2d(&plan_2d_for_1[0], kHard, FFTW_REDFT10,
-                         w_b * (2 * nHard + 1) * chnls);
+                         w_b * (2 * nHard + 1) );
         allocate_plan_2d(&plan_2d_for_2[0], kHard, FFTW_REDFT10,
-                         w_b * pHard * chnls);
+                         w_b * pHard );
         allocate_plan_2d(&plan_2d_inv[0], kHard, FFTW_REDFT01,
-                         NHard * nb_cols * chnls);
+                         NHard * nb_cols );
     }
 
     //! Denoising, 1st Step
@@ -171,18 +171,18 @@ int run_bm3d(
             for (unsigned j = 0; j < width; j++, dc++)
                 img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
     }
-    symetrize(img_basic, img_sym_basic, width, height, chnls, nHard);
+    symetrize(img_basic, img_sym_basic, width, height, nHard);
 
     //! Allocating Plan for FFTW process
     if (tau_2D_wien == DCT)
     {
         const unsigned nb_cols = ind_size(w_b - kWien + 1, nWien, pWien);
         allocate_plan_2d(&plan_2d_for_1[0], kWien, FFTW_REDFT10,
-                         w_b * (2 * nWien + 1) * chnls);
+                         w_b * (2 * nWien + 1) );
         allocate_plan_2d(&plan_2d_for_2[0], kWien, FFTW_REDFT10,
-                         w_b * pWien * chnls);
+                         w_b * pWien );
         allocate_plan_2d(&plan_2d_inv[0], kWien, FFTW_REDFT01,
-                         NWien * nb_cols * chnls);
+                         NWien * nb_cols );
     }
 
     //! Denoising, 2nd Step
@@ -229,7 +229,7 @@ int run_bm3d(
  * @param sigma: value of assumed noise of the image to denoise;
  * @param img_noisy: noisy image;
  * @param img_basic: will contain the denoised image after the 1st step;
- * @param width, height, chnls : size of img_noisy;
+ * @param width, height : size of img_noisy;
  * @param nHard: size of the boundary around img_noisy;
  * @param useSD: if true, use weight based on the standard variation
  *        of the 3D group for the first step, otherwise use the number
@@ -251,7 +251,7 @@ void bm3d_1st_step(
     sigma_table[0] = sigma;
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                                                          //! Threshold for Hard Thresholding
-    const float tauMatch = (chnls == 1 ? 3.f : 1.f) * (sigma_table[0] < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
+    const float tauMatch = ( 3.f ) * (sigma_table[0] < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
 
     //! Initialization for convenience
     vector<unsigned> row_ind;
@@ -259,9 +259,9 @@ void bm3d_1st_step(
     vector<unsigned> column_ind;
     ind_initialize(column_ind, width - kHard + 1, nHard, pHard);
     const unsigned kHard_2 = kHard * kHard;
-    vector<float> group_3D_table(chnls * kHard_2 * NHard * column_ind.size());
+    vector<float> group_3D_table(kHard_2 * NHard * column_ind.size());
     vector<float> wx_r_table;
-    wx_r_table.reserve(chnls * column_ind.size());
+    wx_r_table.reserve( column_ind.size());
     vector<float> hadamard_tmp(NHard);
 
     //! Check allocation memory
@@ -279,15 +279,15 @@ void bm3d_1st_step(
     bior15_coef(lpd, hpd, lpr, hpr);
 
     //! For aggregation part
-    vector<float> denominator(width * height * chnls, 0.0f);
-    vector<float> numerator(width * height * chnls, 0.0f);
+    vector<float> denominator(width * height , 0.0f);
+    vector<float> numerator(width * height , 0.0f);
 
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
     precompute_BM(patch_table, img_noisy, width, height, kHard, NHard, nHard, pHard, tauMatch);
 
     //! table_2D[p * N + q + (i * width + j) * kHard_2 + c * (2 * nHard + 1) * width * kHard_2]
-    vector<float> table_2D((2 * nHard + 1) * width * chnls * kHard_2, 0.0f);
+    vector<float> table_2D((2 * nHard + 1) * width  * kHard_2, 0.0f);
 
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
@@ -317,7 +317,7 @@ void bm3d_1st_step(
             const unsigned nSx_r = patch_table[k_r].size();
 
             //! Build of the 3D group
-            vector<float> group_3D(chnls * nSx_r * kHard_2, 0.0f);
+            vector<float> group_3D(nSx_r * kHard_2, 0.0f);
             for (unsigned c = 0; c < chnls; c++)
                 for (unsigned n = 0; n < nSx_r; n++)
                 {
@@ -351,7 +351,7 @@ void bm3d_1st_step(
 
         //!  Apply 2D inverse transform
         if (tau_2D == DCT)
-            dct_2d_inverse(group_3D_table, kHard, NHard * chnls * column_ind.size(),
+            dct_2d_inverse(group_3D_table, kHard, NHard * column_ind.size(),
                            coef_norm_inv, plan_2d_inv);
         else if (tau_2D == BIOR)
             bior_2d_inverse(group_3D_table, kHard, lpr, hpr);
@@ -383,7 +383,7 @@ void bm3d_1st_step(
     } //! End of loop on i_r
 
     //! Final reconstruction
-    for (unsigned k = 0; k < width * height * chnls; k++)
+    for (unsigned k = 0; k < width * height ; k++)
         img_basic[k] = numerator[k] / denominator[k];
 }
 
@@ -440,8 +440,8 @@ void bm3d_2nd_step(
     preProcess(kaiser_window, coef_norm, coef_norm_inv, kWien);
 
     //! For aggregation part
-    vector<float> denominator(width * height * chnls, 0.0f);
-    vector<float> numerator(width * height * chnls, 0.0f);
+    vector<float> denominator(width * height , 0.0f);
+    vector<float> numerator(width * height , 0.0f);
 
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
@@ -452,8 +452,8 @@ void bm3d_2nd_step(
     bior15_coef(lpd, hpd, lpr, hpr);
 
     //! DCT_table_2D[p * N + q + (i * width + j) * kWien_2 + c * (2 * ns + 1) * width * kWien_2]
-    vector<float> table_2D_img((2 * nWien + 1) * width * chnls * kWien_2, 0.0f);
-    vector<float> table_2D_est((2 * nWien + 1) * width * chnls * kWien_2, 0.0f);
+    vector<float> table_2D_img((2 * nWien + 1) * width  * kWien_2, 0.0f);
+    vector<float> table_2D_est((2 * nWien + 1) * width  * kWien_2, 0.0f);
 
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
@@ -492,8 +492,8 @@ void bm3d_2nd_step(
             const unsigned nSx_r = patch_table[k_r].size();
 
             //! Build of the 3D group
-            vector<float> group_3D_est(chnls * nSx_r * kWien_2, 0.0f);
-            vector<float> group_3D_img(chnls * nSx_r * kWien_2, 0.0f);
+            vector<float> group_3D_est( nSx_r * kWien_2, 0.0f);
+            vector<float> group_3D_img( nSx_r * kWien_2, 0.0f);
             for (unsigned c = 0; c < chnls; c++)
                 for (unsigned n = 0; n < nSx_r; n++)
                 {
@@ -530,7 +530,7 @@ void bm3d_2nd_step(
 
         //!  Apply 2D dct inverse
         if (tau_2D == DCT)
-            dct_2d_inverse(group_3D_table, kWien, NWien * chnls * column_ind.size(),
+            dct_2d_inverse(group_3D_table, kWien, NWien  * column_ind.size(),
                            coef_norm_inv, plan_2d_inv);
         else if (tau_2D == BIOR)
             bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
@@ -551,18 +551,18 @@ void bm3d_2nd_step(
                         for (unsigned q = 0; q < kWien; q++)
                         {
                             const unsigned ind = k + p * width + q;
-                            numerator[ind] += kaiser_window[p * kWien + q] * wx_r_table[c + ind_j * chnls] * group_3D_table[p * kWien + q + n * kWien_2 + c * kWien_2 * nSx_r + dec];
-                            denominator[ind] += kaiser_window[p * kWien + q] * wx_r_table[c + ind_j * chnls];
+                            numerator[ind] += kaiser_window[p * kWien + q] * wx_r_table[c + ind_j ] * group_3D_table[p * kWien + q + n * kWien_2 + c * kWien_2 * nSx_r + dec];
+                            denominator[ind] += kaiser_window[p * kWien + q] * wx_r_table[c + ind_j ];
                         }
                 }
             }
-            dec += nSx_r * chnls * kWien_2;
+            dec += nSx_r  * kWien_2;
         }
 
     } //! End of loop on i_r
 
     //! Final reconstruction
-    for (unsigned k = 0; k < width * height * chnls; k++)
+    for (unsigned k = 0; k < width * height ; k++)
         img_denoised[k] = numerator[k] / denominator[k];
 }
 
@@ -590,7 +590,7 @@ void dct_2d_process(
 {
     //! Declarations
     const unsigned kHW_2 = kHW * kHW;
-    const unsigned size = chnls * kHW_2 * width * (2 * nHW + 1);
+    const unsigned size =  kHW_2 * width * (2 * nHW + 1);
 
     //! If i_r == ns, then we have to process all DCT
     if (i_r == i_min || i_r == i_max)
@@ -644,8 +644,8 @@ void dct_2d_process(
         }
 
         //! Compute the new DCT
-        float *vec = (float *)fftwf_malloc(chnls * kHW_2 * step * width * sizeof(float));
-        float *dct = (float *)fftwf_malloc(chnls * kHW_2 * step * width * sizeof(float));
+        float *vec = (float *)fftwf_malloc( kHW_2 * step * width * sizeof(float));
+        float *dct = (float *)fftwf_malloc(kHW_2 * step * width * sizeof(float));
 
         for (unsigned c = 0; c < chnls; c++)
         {
@@ -686,7 +686,7 @@ void dct_2d_process(
  *        chosen patches;
  * @param img : image on which the 2d transform will be processed;
  * @param nHW : size of the boundary around img;
- * @param width, height, chnls: size of img;
+ * @param width, height: size of img;
  * @param kHW : size of patches (kHW x kHW). MUST BE A POWER OF 2 !!!
  * @param i_r: current index of the reference patches;
  * @param step: space in pixels between two references patches;
@@ -756,7 +756,6 @@ void bior_2d_process(
  * @param tmp: allocated vector used in Hadamard transform for convenience;
  * @param nSx_r : number of similar patches to a reference one;
  * @param kHW : size of patches (kHW x kHW);
- * @param chnls : number of channels of the image;
  * @param sigma_table : contains value of noise for each channel;
  * @param lambdaHard3D : value of thresholding;
  * @param weight_table: the weighting of this 3D group for each channel;
@@ -776,7 +775,7 @@ void ht_filtering_hadamard(
     const float coef = 1.0f / (float)nSx_r;
 
     //! Process the Welsh-Hadamard transform on the 3rd dimension
-    for (unsigned n = 0; n < kHard_2 * chnls; n++)
+    for (unsigned n = 0; n < kHard_2 ; n++)
         hadamard_transform(group_3D, tmp, nSx_r, n * nSx_r);
 
     //! Hard Thresholding
@@ -818,7 +817,6 @@ void ht_filtering_hadamard(
  * @param tmp: allocated vector used in hadamard transform for convenience;
  * @param nSx_r : number of similar patches to a reference one;
  * @param kWien : size of patches (kWien x kWien);
- * @param chnls : number of channels of the image;
  * @param sigma_table : contains value of noise for each channel;
  * @param weight_table: the weighting of this 3D group for each channel;
  * @param doWeight: if true process the weighting, do nothing
@@ -837,7 +835,7 @@ void wiener_filtering_hadamard(
         weight_table[c] = 0.0f;
 
     //! Process the Welsh-Hadamard transform on the 3rd dimension
-    for (unsigned n = 0; n < kWien_2 * chnls; n++)
+    for (unsigned n = 0; n < kWien_2 ; n++)
     {
         hadamard_transform(group_3D_img, tmp, nSx_r, n * nSx_r);
         hadamard_transform(group_3D_est, tmp, nSx_r, n * nSx_r);
@@ -864,7 +862,7 @@ void wiener_filtering_hadamard(
     }
 
     //! Process of the Welsh-Hadamard inverse transform
-    for (unsigned n = 0; n < kWien_2 * chnls; n++)
+    for (unsigned n = 0; n < kWien_2 ; n++)
         hadamard_transform(group_3D_est, tmp, nSx_r, n * nSx_r);
 
     //! Weight for aggregation
@@ -1203,7 +1201,6 @@ void precompute_BM(
  * @param group_3D : 3D group
  * @param nSx_r : number of similar patches in the 3D group
  * @param kHW: size of patches
- * @param chnls: number of channels in the image
  * @param weight_table: will contain the weighting for each
  *        channel.
  *

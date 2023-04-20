@@ -84,8 +84,8 @@ int load_image(
     //! Initializations
     *width = w;
     *height = h;
-    
-    img.resize(w * h );
+
+    img.resize(w * h);
     for (unsigned k = 0; k < w * h * c; k++)
         img[k] = tmp[k];
 
@@ -105,10 +105,10 @@ int save_image(
     char *name, std::vector<float> &img, const unsigned width, const unsigned height)
 {
     //! Allocate Memory
-    float *tmp = new float[width * height ];
+    float *tmp = new float[width * height];
 
     //! Check for boundary problems
-    for (unsigned k = 0; k < width * height ; k++)
+    for (unsigned k = 0; k < width * height; k++)
         tmp[k] = img[k]; //(img[k] > 255.0f ? 255.0f : (img[k] < 0.0f ? 0.0f : img[k]));
 
     iio_save_image_float_split(name, tmp, width, height, 1);
@@ -148,44 +148,41 @@ bool power_of_2(
  * @return none.
  **/
 void symetrize(
-    const std::vector<float> &img, std::vector<float> &img_sym, const unsigned width, const unsigned height, const unsigned chnls, const unsigned N)
+    const std::vector<float> &img, std::vector<float> &img_sym, const unsigned width, const unsigned height, const unsigned N)
 {
     //! Declaration
     const unsigned w = width + 2 * N;
     const unsigned h = height + 2 * N;
 
-    if (img_sym.size() != w * h * chnls)
-        img_sym.resize(w * h * chnls);
+    if (img_sym.size() != w * h)
+        img_sym.resize(w * h);
 
-    for (unsigned c = 0; c < chnls; c++)
-    {
-        unsigned dc = c * width * height;
-        unsigned dc_2 = c * w * h + N * w + N;
+    unsigned dc = 0;
+    unsigned dc_2 = 0 + N * w + N;
 
-        //! Center of the image
-        for (unsigned i = 0; i < height; i++)
-            for (unsigned j = 0; j < width; j++, dc++)
-                img_sym[dc_2 + i * w + j] = img[dc];
+    //! Center of the image
+    for (unsigned i = 0; i < height; i++)
+        for (unsigned j = 0; j < width; j++, dc++)
+            img_sym[dc_2 + i * w + j] = img[dc];
 
-        //! Top and bottom
-        dc_2 = c * w * h;
-        for (unsigned j = 0; j < w; j++, dc_2++)
-            for (unsigned i = 0; i < N; i++)
-            {
-                img_sym[dc_2 + i * w] = img_sym[dc_2 + (2 * N - i - 1) * w];
-                img_sym[dc_2 + (h - i - 1) * w] = img_sym[dc_2 + (h - 2 * N + i) * w];
-            }
-
-        //! Right and left
-        dc_2 = c * w * h;
-        for (unsigned i = 0; i < h; i++)
+    //! Top and bottom
+    dc_2 = 0;
+    for (unsigned j = 0; j < w; j++, dc_2++)
+        for (unsigned i = 0; i < N; i++)
         {
-            const unsigned di = dc_2 + i * w;
-            for (unsigned j = 0; j < N; j++)
-            {
-                img_sym[di + j] = img_sym[di + 2 * N - j - 1];
-                img_sym[di + w - j - 1] = img_sym[di + w - 2 * N + j];
-            }
+            img_sym[dc_2 + i * w] = img_sym[dc_2 + (2 * N - i - 1) * w];
+            img_sym[dc_2 + (h - i - 1) * w] = img_sym[dc_2 + (h - 2 * N + i) * w];
+        }
+
+    //! Right and left
+    dc_2 = 0;
+    for (unsigned i = 0; i < h; i++)
+    {
+        const unsigned di = dc_2 + i * w;
+        for (unsigned j = 0; j < N; j++)
+        {
+            img_sym[di + j] = img_sym[di + 2 * N - j - 1];
+            img_sym[di + w - j - 1] = img_sym[di + w - 2 * N + j];
         }
     }
 
@@ -193,7 +190,7 @@ void symetrize(
 }
 
 /**
- * @brief Compute PSNR and RMSE between img_1 and img_2 
+ * @brief Compute PSNR and RMSE between img_1 and img_2
  *
  * @param img_1 : pointer to an allocated array of pixels.
  * @param img_2 : pointer to an allocated array of pixels.
@@ -252,7 +249,6 @@ int compute_diff(
 
     return EXIT_SUCCESS;
 }
-
 
 /**
  * @brief Look for the closest power of 2 number

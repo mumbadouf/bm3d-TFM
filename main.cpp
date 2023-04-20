@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
   //! Declarations
   vector<float> img_noisy, img_basic, img_denoised;
-  unsigned width, height, chnls=1;
+  unsigned width, height;
 
   //! Load image
   if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
   float fSigma = atof(argv[2]);
   double start = omp_get_wtime();
   //! Denoising
-  if (run_bm3d(fSigma, img_noisy, img_basic, img_denoised, width, height, chnls,
+  if (run_bm3d(fSigma, img_noisy, img_basic, img_denoised, width, height,
                useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, patch_size,
                verbose) != EXIT_SUCCESS)
     return EXIT_FAILURE;
