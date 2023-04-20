@@ -41,7 +41,7 @@ using namespace std;
  *
  * @param name : name of the image to read
  * @param img : vector which will contain the image : R, G and B concatenated
- * @param width, height, chnls : size of the image
+ * @param width, height : size of the image
  *
  * @return EXIT_SUCCESS if the image has been loaded, EXIT_FAILURE otherwise
  **/
@@ -97,7 +97,7 @@ int load_image(
  *
  * @param name : path+name+extension of the image
  * @param img : vector which contains the image
- * @param width, height, chnls : size of the image
+ * @param width, height : size of the image
  *
  * @return EXIT_SUCCESS if the image has been saved, EXIT_FAILURE otherwise
  **/
@@ -142,7 +142,7 @@ bool power_of_2(
  *
  * @param img : image to symetrize
  * @param img_sym : will contain img with symetrized boundaries
- * @param width, height, chnls : size of img
+ * @param width, height : size of img
  * @param N : size of the boundary
  *
  * @return none.

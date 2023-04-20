@@ -30,7 +30,7 @@ void bm3d_1st_step(
 ,   std::vector<float> &img_basic
 ,   const unsigned width
 ,   const unsigned height
-,   const unsigned chnls
+ 
 ,   const unsigned nHard
 ,   const unsigned kHard
 ,   const unsigned NHard
@@ -50,7 +50,7 @@ void bm3d_2nd_step(
 ,   std::vector<float> &img_denoised
 ,   const unsigned width
 ,   const unsigned height
-,   const unsigned chnls
+ 
 ,   const unsigned nWien
 ,   const unsigned kWien
 ,   const unsigned NWien
@@ -71,7 +71,7 @@ void dct_2d_process(
 ,   const unsigned nHW
 ,   const unsigned width
 ,   const unsigned height
-,   const unsigned chnls
+ 
 ,   const unsigned kHW
 ,   const unsigned i_r
 ,   const unsigned step
@@ -87,7 +87,7 @@ void bior_2d_process(
 ,   const unsigned nHW
 ,   const unsigned width
 ,   const unsigned height
-,   const unsigned chnls
+ 
 ,   const unsigned kHW
 ,   const unsigned i_r
 ,   const unsigned step
@@ -120,7 +120,7 @@ void ht_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kHard
-,   const unsigned chnls
+ 
 ,   std::vector<float> const& sigma_table
 ,   const float lambdaThr3D
 ,   std::vector<float> &weight_table
@@ -134,7 +134,7 @@ void wiener_filtering_hadamard(
 ,   std::vector<float> &tmp
 ,   const unsigned nSx_r
 ,   const unsigned kWien
-,   const unsigned chnls
+ 
 ,   std::vector<float> const& sigma_table
 ,   std::vector<float> &weight_table
 ,   const bool doWeight
@@ -145,7 +145,7 @@ void sd_weighting(
     std::vector<float> const& group_3D
 ,   const unsigned nSx_r
 ,   const unsigned kHW
-,   const unsigned chnls
+ 
 ,   std::vector<float> &weight_table
 );
 

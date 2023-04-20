@@ -34,19 +34,6 @@ void symetrize(
 ,   const unsigned N
 );
 
-//! Subdivide an image into small sub-images
-void sub_divide(
-    std::vector<float> &img
-,   std::vector<std::vector<float> > &sub_img
-,   std::vector<unsigned> &w_table
-,   std::vector<unsigned> &h_table
-,   const unsigned width
-,   const unsigned height
-,   const unsigned chnls
-,   const unsigned N
-,   bool divide
-);
-
 //! Compute the PSNR and RMSE between img_1 and img_2
 int compute_psnr(
     const std::vector<float> &img_1
