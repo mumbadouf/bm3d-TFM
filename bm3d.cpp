@@ -73,15 +73,12 @@ bool ComparaisonFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
  * @param tau_2D_hard (resp. tau_2D_wien): 2D transform to apply
  *        on every 3D group for the first (resp. second) part.
  *        Allowed values are DCT and BIOR;
- * @param color_space: Transformation from RGB to YUV. Allowed
- *        values are RGB (do nothing), YUV, YCBCR and OPP.
+
  * @param patch_size: overrides the default patch size selection.
  *        patch_size=0: use default behavior
  *        patch_size>0: size to be used
  * @param verbose: if true, print additional information;
  *
- * @return EXIT_FAILURE if color_space has not expected
- *         type, otherwise return EXIT_SUCCESS.
  **/
 int run_bm3d(
     const float sigma,
@@ -95,7 +92,7 @@ int run_bm3d(
     const bool useSD_w,
     const unsigned tau_2D_hard,
     const unsigned tau_2D_wien,
-    const unsigned color_space,
+
     const unsigned patch_size,
     const bool verbose)
 {
@@ -133,10 +130,6 @@ int run_bm3d(
     if (img_denoised.size() != img_noisy.size())
         img_denoised.resize(img_noisy.size());
 
-    //! Transformation to YUV color space
-    if (color_space_transform(img_noisy, color_space, width, height, chnls, true) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
-
     //! Allocate plan for FFTW library
     fftwf_plan plan_2d_for_1[1];
     fftwf_plan plan_2d_for_2[1];
@@ -164,7 +157,7 @@ int run_bm3d(
     if (verbose)
         cout << "BM3D 1st step...";
     bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, chnls, nHard,
-                  kHard, NHard, pHard, useSD_h, color_space, tau_2D_hard,
+                  kHard, NHard, pHard, useSD_h, tau_2D_hard,
                   &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
     if (verbose)
         cout << "is done." << endl;
@@ -196,7 +189,7 @@ int run_bm3d(
     if (verbose)
         cout << "BM3D 2nd step...";
     bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised,
-                  w_b, h_b, chnls, nWien, kWien, NWien, pWien, useSD_w, color_space,
+                  w_b, h_b, chnls, nWien, kWien, NWien, pWien, useSD_w,
                   tau_2D_wien, &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
     if (verbose)
         cout << "is done." << endl;
@@ -210,17 +203,7 @@ int run_bm3d(
             for (unsigned j = 0; j < width; j++, dc++)
                 img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
     }
-    if (verbose)
-        cout << "inversing color space" << endl;
-    //! Inverse color space transform to RGB
-    if (color_space_transform(img_denoised, color_space, width, height, chnls, false) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
-    if (color_space_transform(img_noisy, color_space, width, height, chnls, false) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
-    if (color_space_transform(img_basic, color_space, width, height, chnls, false) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
-    if (verbose)
-        cout << "is done." << endl;
+
     //! Free Memory
     if (verbose)
         cout << "fftwf free..." << endl;
@@ -258,13 +241,14 @@ int run_bm3d(
  * @return none.
  **/
 void bm3d_1st_step(
-    const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width, const unsigned height, const unsigned chnls, const unsigned nHard, const unsigned kHard, const unsigned NHard, const unsigned pHard, const bool useSD, const unsigned color_space, const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
+    const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width, const unsigned height,
+    const unsigned chnls, const unsigned nHard, const unsigned kHard, const unsigned NHard, const unsigned pHard,
+    const bool useSD,
+    const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
 {
     //! Estimatation of sigma on each channel
     vector<float> sigma_table(chnls);
-    if (estimate_sigma(sigma, sigma_table, chnls, color_space) != EXIT_SUCCESS)
-        return;
-
+    sigma_table[0] = sigma;
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                                                          //! Threshold for Hard Thresholding
     const float tauMatch = (chnls == 1 ? 3.f : 1.f) * (sigma_table[0] < 35.0f ? 2500 : 5000); //! threshold used to determinate similarity between patches
@@ -424,12 +408,12 @@ void bm3d_1st_step(
  * @return none.
  **/
 void bm3d_2nd_step(
-    const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic, vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned chnls, const unsigned nWien, const unsigned kWien, const unsigned NWien, const unsigned pWien, const bool useSD, const unsigned color_space, const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
+    const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic, vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned chnls, const unsigned nWien, const unsigned kWien, const unsigned NWien, const unsigned pWien, const bool useSD,
+    const unsigned tau_2D, fftwf_plan *plan_2d_for_1, fftwf_plan *plan_2d_for_2, fftwf_plan *plan_2d_inv)
 {
     //! Estimatation of sigma on each channel
     vector<float> sigma_table(chnls);
-    if (estimate_sigma(sigma, sigma_table, chnls, color_space) != EXIT_SUCCESS)
-        return;
+    sigma_table[0] = sigma;
 
     //! Parameters initialization
     const float tauMatch = (sigma_table[0] < 35.0f ? 400 : 3500); //! threshold used to determinate similarity between patches

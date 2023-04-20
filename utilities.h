@@ -66,27 +66,9 @@ int compute_diff(
 ,   const float sigma
 );
 
-//! Transform the color space of the image
-int color_space_transform(
-    std::vector<float> &img
-,   const unsigned color_space
-,   const unsigned width
-,   const unsigned height
-,   const unsigned chnls
-,   const bool rgb2yuv
-);
-
 //! Look for the closest power of 2 number
 int closest_power_of_2(
     const unsigned n
-);
-
-//! Estimate sigma on each channel according to the choice of the color_space
-int estimate_sigma(
-    const float sigma
-,   std::vector<float> &sigma_table
-,   const unsigned chnls
-,   const unsigned color_space
 );
 
 //! Initialize a set of indices
