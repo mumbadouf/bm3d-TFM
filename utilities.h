@@ -10,7 +10,6 @@ int load_image(
 ,   std::vector<float> &img
 ,   unsigned * width
 ,   unsigned * height
-,   unsigned * chnls
 );
 
 //! Write image
@@ -19,7 +18,6 @@ int save_image(
 ,   std::vector<float> &img
 ,   const unsigned width
 ,   const unsigned height
-,   const unsigned chnls
 );
 
 //! Check if a number is a power of 2

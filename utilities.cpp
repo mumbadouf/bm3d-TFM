@@ -46,7 +46,7 @@ using namespace std;
  * @return EXIT_SUCCESS if the image has been loaded, EXIT_FAILURE otherwise
  **/
 int load_image(
-    char *name, vector<float> &img, unsigned *width, unsigned *height, unsigned *chnls)
+    char *name, vector<float> &img, unsigned *width, unsigned *height)
 {
     //! read input image
     cout << endl
@@ -84,8 +84,8 @@ int load_image(
     //! Initializations
     *width = w;
     *height = h;
-    *chnls = c;
-    img.resize(w * h * c);
+    
+    img.resize(w * h );
     for (unsigned k = 0; k < w * h * c; k++)
         img[k] = tmp[k];
 
@@ -102,16 +102,16 @@ int load_image(
  * @return EXIT_SUCCESS if the image has been saved, EXIT_FAILURE otherwise
  **/
 int save_image(
-    char *name, std::vector<float> &img, const unsigned width, const unsigned height, const unsigned chnls)
+    char *name, std::vector<float> &img, const unsigned width, const unsigned height)
 {
     //! Allocate Memory
-    float *tmp = new float[width * height * chnls];
+    float *tmp = new float[width * height ];
 
     //! Check for boundary problems
-    for (unsigned k = 0; k < width * height * chnls; k++)
+    for (unsigned k = 0; k < width * height ; k++)
         tmp[k] = img[k]; //(img[k] > 255.0f ? 255.0f : (img[k] < 0.0f ? 0.0f : img[k]));
 
-    iio_save_image_float_split(name, tmp, width, height, chnls);
+    iio_save_image_float_split(name, tmp, width, height, 1);
 
     //! Free Memory
     delete[] tmp;

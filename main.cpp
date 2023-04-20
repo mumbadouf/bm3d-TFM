@@ -100,10 +100,10 @@ int main(int argc, char **argv)
 
   //! Declarations
   vector<float> img_noisy, img_basic, img_denoised;
-  unsigned width, height, chnls;
+  unsigned width, height, chnls=1;
 
   //! Load image
-  if (load_image(argv[1], img_noisy, &width, &height, &chnls) != EXIT_SUCCESS)
+  if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
     return EXIT_FAILURE;
 
   float fSigma = atof(argv[2]);
@@ -121,11 +121,7 @@ int main(int argc, char **argv)
   cout << endl
        << "Save images...";
 
-  if (argc > 4)
-    if (save_image(argv[4], img_basic, width, height, chnls) != EXIT_SUCCESS)
-      return EXIT_FAILURE;
-
-  if (save_image(argv[3], img_denoised, width, height, chnls) != EXIT_SUCCESS)
+  if (save_image(argv[3], img_denoised, width, height) != EXIT_SUCCESS)
     return EXIT_FAILURE;
 
   cout << "done." << endl;
