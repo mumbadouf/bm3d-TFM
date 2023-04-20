@@ -25,8 +25,6 @@ fftw3.h
 -
 vector
 -
-omp.h
--
 
 /home/hassan/Desktop/TFM/bm3d-master/lib_transforms.h
 vector

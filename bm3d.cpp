@@ -58,9 +58,7 @@ bool ComparaisonFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
 /** - Main function - **/
 /** ----------------- **/
 /**
- * @brief run BM3D process. Depending on if OpenMP is used or not,
- *        and on the number of available threads, it divides the noisy
- *        image in sub_images, to process them in parallel.
+ * @brief run BM3D process.
  *
  * @param sigma: value of assumed noise of the noisy image;
  * @param img_noisy: noisy image;
@@ -86,7 +84,20 @@ bool ComparaisonFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
  *         type, otherwise return EXIT_SUCCESS.
  **/
 int run_bm3d(
-    const float sigma, vector<float> &img_noisy, vector<float> &img_basic, vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned chnls, const bool useSD_h, const bool useSD_w, const unsigned tau_2D_hard, const unsigned tau_2D_wien, const unsigned color_space, const unsigned patch_size, const unsigned nb_threads, const bool verbose)
+    const float sigma,
+    vector<float> &img_noisy,
+    vector<float> &img_basic,
+    vector<float> &img_denoised,
+    const unsigned width,
+    const unsigned height,
+    const unsigned chnls,
+    const bool useSD_h,
+    const bool useSD_w,
+    const unsigned tau_2D_hard,
+    const unsigned tau_2D_wien,
+    const unsigned color_space,
+    const unsigned patch_size,
+    const bool verbose)
 {
     //! Parameters
     const unsigned nHard = 16; //! Half size of the search window
@@ -126,214 +137,81 @@ int run_bm3d(
     if (color_space_transform(img_noisy, color_space, width, height, chnls, true) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
-    //! Check if OpenMP is used or if number of cores of the computer is > 1
-    unsigned _nb_threads = nb_threads;
-    if (verbose)
-    {
-        cout << "OpenMP multithreading is";
-#ifndef _OPENMP
-        cout << " not";
-#endif
-        cout << " available." << endl;
-    }
-
-    // set _nb_threads
-#ifdef _OPENMP
-    unsigned avail_nb_threads = omp_get_max_threads();
-    unsigned avail_nb_cores = omp_get_num_procs();
-
-    // if specified number exceeds available threads of if not specified at all
-    // at least use all available threads
-    if (_nb_threads > avail_nb_threads || _nb_threads == 0)
-    {
-        // log if specified number of threads exeeds number of real cores
-        if (_nb_threads > avail_nb_cores)
-            cout << "Parameter nb_threads should not exceed the number of real cores." << endl;
-        _nb_threads = avail_nb_threads;
-    }
-    // In case the number of threads is not a power of 2
-    if (!power_of_2(_nb_threads))
-        _nb_threads = closest_power_of_2(_nb_threads);
-#else
-    if (_nb_threads > 1)
-    {
-        cout << "Parameter nb_threads has no effect if OpenMP multithreading is not available." << endl;
-    }
-    _nb_threads = 1;
-#endif
-
-    if (verbose)
-    {
-        cout << "Working threads: " << _nb_threads;
-#ifdef _OPENMP
-        cout << " (Must be 2^n) (Total available threads/real cores: " << avail_nb_threads << "/" << avail_nb_cores << ")";
-#endif
-        cout << endl;
-    }
-
     //! Allocate plan for FFTW library
-    fftwf_plan plan_2d_for_1[_nb_threads];
-    fftwf_plan plan_2d_for_2[_nb_threads];
-    fftwf_plan plan_2d_inv[_nb_threads];
+    fftwf_plan plan_2d_for_1[1];
+    fftwf_plan plan_2d_for_2[1];
+    fftwf_plan plan_2d_inv[1];
 
-    //! In the simple case
-    if (_nb_threads == 1)
+    //! Add boundaries and symetrize them
+    const unsigned h_b = height + 2 * nHard;
+    const unsigned w_b = width + 2 * nHard;
+    vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
+    symetrize(img_noisy, img_sym_noisy, width, height, chnls, nHard);
+
+    //! Allocating Plan for FFTW process
+    if (tau_2D_hard == DCT)
     {
-        //! Add boundaries and symetrize them
-        const unsigned h_b = height + 2 * nHard;
-        const unsigned w_b = width + 2 * nHard;
-        vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
-        symetrize(img_noisy, img_sym_noisy, width, height, chnls, nHard);
-
-        //! Allocating Plan for FFTW process
-        if (tau_2D_hard == DCT)
-        {
-            const unsigned nb_cols = ind_size(w_b - kHard + 1, nHard, pHard);
-            allocate_plan_2d(&plan_2d_for_1[0], kHard, FFTW_REDFT10,
-                             w_b * (2 * nHard + 1) * chnls);
-            allocate_plan_2d(&plan_2d_for_2[0], kHard, FFTW_REDFT10,
-                             w_b * pHard * chnls);
-            allocate_plan_2d(&plan_2d_inv[0], kHard, FFTW_REDFT01,
-                             NHard * nb_cols * chnls);
-        }
-
-        //! Denoising, 1st Step
-        if (verbose)
-            cout << "BM3D 1st step...";
-        bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, chnls, nHard,
-                      kHard, NHard, pHard, useSD_h, color_space, tau_2D_hard,
-                      &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
-        if (verbose)
-            cout << "is done." << endl;
-
-        //! To avoid boundaries problem
-        for (unsigned c = 0; c < chnls; c++)
-        {
-            const unsigned dc_b = c * w_b * h_b + nHard * w_b + nHard;
-            unsigned dc = c * width * height;
-            for (unsigned i = 0; i < height; i++)
-                for (unsigned j = 0; j < width; j++, dc++)
-                    img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
-        }
-        symetrize(img_basic, img_sym_basic, width, height, chnls, nHard);
-
-        //! Allocating Plan for FFTW process
-        if (tau_2D_wien == DCT)
-        {
-            const unsigned nb_cols = ind_size(w_b - kWien + 1, nWien, pWien);
-            allocate_plan_2d(&plan_2d_for_1[0], kWien, FFTW_REDFT10,
-                             w_b * (2 * nWien + 1) * chnls);
-            allocate_plan_2d(&plan_2d_for_2[0], kWien, FFTW_REDFT10,
-                             w_b * pWien * chnls);
-            allocate_plan_2d(&plan_2d_inv[0], kWien, FFTW_REDFT01,
-                             NWien * nb_cols * chnls);
-        }
-
-        //! Denoising, 2nd Step
-        if (verbose)
-            cout << "BM3D 2nd step...";
-        bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised,
-                      w_b, h_b, chnls, nWien, kWien, NWien, pWien, useSD_w, color_space,
-                      tau_2D_wien, &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
-        if (verbose)
-            cout << "is done." << endl;
-
-        //! Obtention of img_denoised
-        for (unsigned c = 0; c < chnls; c++)
-        {
-            const unsigned dc_b = c * w_b * h_b + nWien * w_b + nWien;
-            unsigned dc = c * width * height;
-            for (unsigned i = 0; i < height; i++)
-                for (unsigned j = 0; j < width; j++, dc++)
-                    img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
-        }
-    }
-    //! If more than 1 threads are used
-    else
-    {
-        //! Cut the image in _nb_threads parts
-        vector<vector<float>> sub_noisy(_nb_threads);
-        vector<vector<float>> sub_basic(_nb_threads);
-        vector<vector<float>> sub_denoised(_nb_threads);
-        vector<unsigned> h_table(_nb_threads);
-        vector<unsigned> w_table(_nb_threads);
-        sub_divide(img_noisy, sub_noisy, w_table, h_table, width, height, chnls,
-                   2 * nWien, true);
-
-        //! Allocating Plan for FFTW process
-        if (tau_2D_hard == DCT)
-            for (unsigned n = 0; n < _nb_threads; n++)
-            {
-                const unsigned nb_cols = ind_size(w_table[n] - kHard + 1, nHard, pHard);
-                allocate_plan_2d(&plan_2d_for_1[n], kHard, FFTW_REDFT10,
-                                 w_table[n] * (2 * nHard + 1) * chnls);
-                allocate_plan_2d(&plan_2d_for_2[n], kHard, FFTW_REDFT10,
-                                 w_table[n] * pHard * chnls);
-                allocate_plan_2d(&plan_2d_inv[n], kHard, FFTW_REDFT01,
-                                 NHard * nb_cols * chnls);
-            }
-
-        //! denoising : 1st Step
-        if (verbose)
-            cout << "BM3D 1st step...";
-#pragma omp parallel shared(sub_noisy, sub_basic, w_table, h_table, \
-                            plan_2d_for_1, plan_2d_for_2, plan_2d_inv)
-        {
-#pragma omp for schedule(dynamic) nowait
-            for (unsigned n = 0; n < _nb_threads; n++)
-            {
-                bm3d_1st_step(sigma, sub_noisy[n], sub_basic[n], w_table[n],
-                              h_table[n], chnls, nHard, kHard, NHard, pHard, useSD_h,
-                              color_space, tau_2D_hard, &plan_2d_for_1[n],
-                              &plan_2d_for_2[n], &plan_2d_inv[n]);
-            }
-        }
-        if (verbose)
-            cout << "is done." << endl;
-
-        sub_divide(img_basic, sub_basic, w_table, h_table,
-                   width, height, chnls, 2 * nHard, false);
-
-        sub_divide(img_basic, sub_basic, w_table, h_table, width, height, chnls,
-                   2 * nHard, true);
-
-        //! Allocating Plan for FFTW process
-        if (tau_2D_wien == DCT)
-            for (unsigned n = 0; n < _nb_threads; n++)
-            {
-                const unsigned nb_cols = ind_size(w_table[n] - kWien + 1, nWien, pWien);
-                allocate_plan_2d(&plan_2d_for_1[n], kWien, FFTW_REDFT10,
-                                 w_table[n] * (2 * nWien + 1) * chnls);
-                allocate_plan_2d(&plan_2d_for_2[n], kWien, FFTW_REDFT10,
-                                 w_table[n] * pWien * chnls);
-                allocate_plan_2d(&plan_2d_inv[n], kWien, FFTW_REDFT01,
-                                 NWien * nb_cols * chnls);
-            }
-
-        //! Denoising: 2nd Step
-        if (verbose)
-            cout << "BM3D 2nd step...";
-#pragma omp parallel shared(sub_noisy, sub_basic, sub_denoised, w_table, \
-                            h_table, plan_2d_for_1, plan_2d_for_2,       \
-                            plan_2d_inv)
-        {
-#pragma omp for schedule(dynamic) nowait
-            for (unsigned n = 0; n < _nb_threads; n++)
-            {
-                bm3d_2nd_step(sigma, sub_noisy[n], sub_basic[n], sub_denoised[n],
-                              w_table[n], h_table[n], chnls, nWien, kWien, NWien, pWien,
-                              useSD_w, color_space, tau_2D_wien, &plan_2d_for_1[n],
-                              &plan_2d_for_2[n], &plan_2d_inv[n]);
-            }
-        }
-        if (verbose)
-            cout << "is done." << endl;
-
-        //! Reconstruction of the image
-        sub_divide(img_denoised, sub_denoised, w_table, h_table,
-                   width, height, chnls, 2 * nWien, false);
+        const unsigned nb_cols = ind_size(w_b - kHard + 1, nHard, pHard);
+        allocate_plan_2d(&plan_2d_for_1[0], kHard, FFTW_REDFT10,
+                         w_b * (2 * nHard + 1) * chnls);
+        allocate_plan_2d(&plan_2d_for_2[0], kHard, FFTW_REDFT10,
+                         w_b * pHard * chnls);
+        allocate_plan_2d(&plan_2d_inv[0], kHard, FFTW_REDFT01,
+                         NHard * nb_cols * chnls);
     }
 
+    //! Denoising, 1st Step
+    if (verbose)
+        cout << "BM3D 1st step...";
+    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, chnls, nHard,
+                  kHard, NHard, pHard, useSD_h, color_space, tau_2D_hard,
+                  &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
+    if (verbose)
+        cout << "is done." << endl;
+
+    //! To avoid boundaries problem
+    for (unsigned c = 0; c < chnls; c++)
+    {
+        const unsigned dc_b = c * w_b * h_b + nHard * w_b + nHard;
+        unsigned dc = c * width * height;
+        for (unsigned i = 0; i < height; i++)
+            for (unsigned j = 0; j < width; j++, dc++)
+                img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
+    }
+    symetrize(img_basic, img_sym_basic, width, height, chnls, nHard);
+
+    //! Allocating Plan for FFTW process
+    if (tau_2D_wien == DCT)
+    {
+        const unsigned nb_cols = ind_size(w_b - kWien + 1, nWien, pWien);
+        allocate_plan_2d(&plan_2d_for_1[0], kWien, FFTW_REDFT10,
+                         w_b * (2 * nWien + 1) * chnls);
+        allocate_plan_2d(&plan_2d_for_2[0], kWien, FFTW_REDFT10,
+                         w_b * pWien * chnls);
+        allocate_plan_2d(&plan_2d_inv[0], kWien, FFTW_REDFT01,
+                         NWien * nb_cols * chnls);
+    }
+
+    //! Denoising, 2nd Step
+    if (verbose)
+        cout << "BM3D 2nd step...";
+    bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised,
+                  w_b, h_b, chnls, nWien, kWien, NWien, pWien, useSD_w, color_space,
+                  tau_2D_wien, &plan_2d_for_1[0], &plan_2d_for_2[0], &plan_2d_inv[0]);
+    if (verbose)
+        cout << "is done." << endl;
+
+    //! Obtention of img_denoised
+    for (unsigned c = 0; c < chnls; c++)
+    {
+        const unsigned dc_b = c * w_b * h_b + nWien * w_b + nWien;
+        unsigned dc = c * width * height;
+        for (unsigned i = 0; i < height; i++)
+            for (unsigned j = 0; j < width; j++, dc++)
+                img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
+    }
+    if (verbose)
+        cout << "inversing color space" << endl;
     //! Inverse color space transform to RGB
     if (color_space_transform(img_denoised, color_space, width, height, chnls, false) != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -341,17 +219,21 @@ int run_bm3d(
         return EXIT_FAILURE;
     if (color_space_transform(img_basic, color_space, width, height, chnls, false) != EXIT_SUCCESS)
         return EXIT_FAILURE;
-
+    if (verbose)
+        cout << "is done." << endl;
     //! Free Memory
+    if (verbose)
+        cout << "fftwf free..." << endl;
     if (tau_2D_hard == DCT || tau_2D_wien == DCT)
-        for (unsigned n = 0; n < _nb_threads; n++)
-        {
-            fftwf_destroy_plan(plan_2d_for_1[n]);
-            fftwf_destroy_plan(plan_2d_for_2[n]);
-            fftwf_destroy_plan(plan_2d_inv[n]);
-        }
-    fftwf_cleanup();
+    {
+        fftwf_destroy_plan(plan_2d_for_1[0]);
+        fftwf_destroy_plan(plan_2d_for_2[0]);
+        fftwf_destroy_plan(plan_2d_inv[0]);
+    }
 
+    fftwf_cleanup();
+    if (verbose)
+        cout << "is done." << endl;
     return EXIT_SUCCESS;
 }
 
