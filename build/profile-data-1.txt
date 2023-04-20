@@ -1,0 +1,433 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 34.30      9.35     9.35        2     4.68     5.41  precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float)
+ 19.70     14.72     5.37 62772352     0.00     0.00  hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int)
+ 10.31     17.53     2.81      528     0.01     0.01  dct_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**, fftwf_plan_s**, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int)
+  7.70     19.63     2.10        1     2.10    16.91  bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**)
+  6.05     21.28     1.65  1802000     0.00     0.00  bior_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&)
+  6.02     22.92     1.64   111936     0.00     0.00  wiener_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, bool)
+  3.38     23.84     0.92  1114920     0.00     0.00  bior_2d_forward(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&)
+  3.01     24.66     0.82      264     0.00     0.00  dct_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**)
+  3.01     25.48     0.82 31838925     0.00     0.00  void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)>)
+  2.31     26.11     0.63 402348643     0.00     0.00  ComparaisonFirst(std::pair<float, unsigned int>, std::pair<float, unsigned int>)
+  2.09     26.68     0.57        1     0.57    10.30  bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**)
+  1.58     27.11     0.43      265     0.00     0.01  bior_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&)
+  0.33     27.20     0.09   112625     0.00     0.00  ht_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, float, std::vector<float, std::allocator<float> >&, bool)
+  0.04     27.21     0.01        2     0.01     0.01  symetrize(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int)
+  0.04     27.22     0.01        2     0.01     0.01  std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >::_M_default_append(unsigned long)
+  0.04     27.23     0.01        1     0.01     0.01  iio_hacky_uncolorize
+  0.04     27.24     0.01        1     0.01     0.01  iio_write_image_float_split
+  0.04     27.25     0.01                             bior_2d_forward_test(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, std::vector<unsigned int, std::allocator<unsigned int> >&)
+  0.04     27.26     0.01                             void std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > >::_M_realloc_insert<std::pair<float, unsigned int> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, std::pair<float, unsigned int>&&)
+  0.00     27.26     0.00  1234741     0.00     0.00  void std::vector<unsigned int, std::allocator<unsigned int> >::_M_realloc_insert<unsigned int const&>(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned int const&)
+  0.00     27.26     0.00       14     0.00     0.00  std::vector<float, std::allocator<float> >::_M_default_append(unsigned long)
+  0.00     27.26     0.00        8     0.00     0.00  ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int)
+  0.00     27.26     0.00        5     0.00     0.00  iio_type_size
+  0.00     27.26     0.00        4     0.00     0.00  color_space_transform(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, bool)
+  0.00     27.26     0.00        3     0.00     0.00  allocate_plan_2d(fftwf_plan_s**, unsigned int, fftw_r2r_kind_do_not_use_me, unsigned int)
+  0.00     27.26     0.00        2     0.00     0.00  preProcess(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int)
+  0.00     27.26     0.00        2     0.00     0.00  bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&)
+  0.00     27.26     0.00        2     0.00     0.00  estimate_sigma(float, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int)
+  0.00     27.26     0.00        2     0.00     0.00  std::vector<float, std::allocator<float> >::reserve(unsigned long)
+  0.00     27.26     0.00        2     0.00     0.00  convert_data
+  0.00     27.26     0.00        2     0.00     0.00  xfclose
+  0.00     27.26     0.00        2     0.00     0.00  xfopen
+  0.00     27.26     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z10load_imagePcRSt6vectorIfSaIfEEPjS4_S4_
+  0.00     27.26     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z11pick_optionPiPPcPKcS3_
+  0.00     27.26     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z16ComparaisonFirstSt4pairIfjES0_
+  0.00     27.26     0.00        1     0.00     0.00  power_of_2(unsigned int)
+  0.00     27.26     0.00        1     0.00     0.00  ind_size(unsigned int, unsigned int, unsigned int)
+  0.00     27.26     0.00        1     0.00     0.00  comma_named_tiff
+  0.00     27.26     0.00        1     0.00     0.00  iio_convert_samples.constprop.1
+  0.00     27.26     0.00        1     0.00     0.00  iio_convert_samples.constprop.3
+  0.00     27.26     0.00        1     0.00     0.01  iio_read_image_float_split
+  0.00     27.26     0.00        1     0.00     0.00  iio_save_image_float_split
+  0.00     27.26     0.00        1     0.00     0.00  iio_write_image_as_png
+  0.00     27.26     0.00        1     0.00     0.00  iio_write_image_default
+  0.00     27.26     0.00        1     0.00     0.01  read_image
+  0.00     27.26     0.00        1     0.00     0.01  read_image_f
+  0.00     27.26     0.00        1     0.00     0.00  rim_getint
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 0.04% of 27.26 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     99.9    0.00   27.22                 run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+                2.10   14.81       1/1           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+                0.57    9.73       1/1           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.01    0.00       2/2           symetrize(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int) [20]
+                0.00    0.00       4/4           color_space_transform(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, bool) [126]
+                0.00    0.00       3/3           allocate_plan_2d(fftwf_plan_s**, unsigned int, fftw_r2r_kind_do_not_use_me, unsigned int) [127]
+                0.00    0.00       2/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+                0.00    0.00       1/1           power_of_2(unsigned int) [135]
+                0.00    0.00       1/1           ind_size(unsigned int, unsigned int, unsigned int) [136]
+-----------------------------------------------
+                2.10   14.81       1/1           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[2]     62.0    2.10   14.81       1         bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+                1.64    4.14  111936/111936      wiener_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, bool) [5]
+                4.68    0.73       1/2           precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+                2.81    0.00     528/528         dct_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**, fftwf_plan_s**, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int) [7]
+                0.82    0.00     264/264         dct_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**) [13]
+                0.00    0.00       2/8           ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int) [125]
+                0.00    0.00       1/2           estimate_sigma(float, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [130]
+                0.00    0.00       1/2           std::vector<float, std::allocator<float> >::reserve(unsigned long) [131]
+                0.00    0.00       1/2           preProcess(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int) [128]
+                0.00    0.00       1/2           bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [129]
+                0.00    0.00       1/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                4.68    0.73       1/2           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                4.68    0.73       1/2           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[3]     39.7    9.35    1.46       2         precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+                0.82    0.26 31838925/31838925     void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)>) [11]
+                0.37    0.00 238347474/402348643     ComparaisonFirst(std::pair<float, unsigned int>, std::pair<float, unsigned int>) [14]
+                0.01    0.00       2/2           std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >::_M_default_append(unsigned long) [21]
+                0.00    0.00 1234741/1234741     void std::vector<unsigned int, std::allocator<unsigned int> >::_M_realloc_insert<unsigned int const&>(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned int const&) [123]
+                0.00    0.00       4/8           ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int) [125]
+-----------------------------------------------
+                0.57    9.73       1/1           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[4]     37.8    0.57    9.73       1         bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                4.68    0.73       1/2           precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+                1.65    0.00 1802000/1802000     bior_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [8]
+                0.43    0.92     265/265         bior_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [9]
+                0.09    1.23  112625/112625      ht_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, float, std::vector<float, std::allocator<float> >&, bool) [10]
+                0.00    0.00       2/8           ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int) [125]
+                0.00    0.00       1/2           estimate_sigma(float, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [130]
+                0.00    0.00       1/2           std::vector<float, std::allocator<float> >::reserve(unsigned long) [131]
+                0.00    0.00       1/2           preProcess(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int) [128]
+                0.00    0.00       1/2           bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [129]
+                0.00    0.00       1/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                1.64    4.14  111936/111936      bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[5]     21.2    1.64    4.14  111936         wiener_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, bool) [5]
+                4.14    0.00 48356352/62772352     hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [6]
+-----------------------------------------------
+                             826257280             hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [6]
+                1.23    0.00 14416000/62772352     ht_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, float, std::vector<float, std::allocator<float> >&, bool) [10]
+                4.14    0.00 48356352/62772352     wiener_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, bool) [5]
+[6]     19.7    5.37    0.00 62772352+826257280 hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [6]
+                             826257280             hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [6]
+-----------------------------------------------
+                2.81    0.00     528/528         bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[7]     10.3    2.81    0.00     528         dct_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**, fftwf_plan_s**, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int) [7]
+-----------------------------------------------
+                1.65    0.00 1802000/1802000     bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+[8]      6.1    1.65    0.00 1802000         bior_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [8]
+-----------------------------------------------
+                0.43    0.92     265/265         bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+[9]      5.0    0.43    0.92     265         bior_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [9]
+                0.92    0.00 1114920/1114920     bior_2d_forward(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [12]
+-----------------------------------------------
+                0.09    1.23  112625/112625      bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+[10]     4.9    0.09    1.23  112625         ht_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, float, std::vector<float, std::allocator<float> >&, bool) [10]
+                1.23    0.00 14416000/62772352     hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [6]
+-----------------------------------------------
+                0.82    0.26 31838925/31838925     precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+[11]     4.0    0.82    0.26 31838925         void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)>) [11]
+                0.26    0.00 164001169/402348643     ComparaisonFirst(std::pair<float, unsigned int>, std::pair<float, unsigned int>) [14]
+-----------------------------------------------
+                0.92    0.00 1114920/1114920     bior_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [9]
+[12]     3.4    0.92    0.00 1114920         bior_2d_forward(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [12]
+-----------------------------------------------
+                0.82    0.00     264/264         bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[13]     3.0    0.82    0.00     264         dct_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**) [13]
+-----------------------------------------------
+                0.26    0.00 164001169/402348643     void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)>) [11]
+                0.37    0.00 238347474/402348643     precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+[14]     2.3    0.63    0.00 402348643         ComparaisonFirst(std::pair<float, unsigned int>, std::pair<float, unsigned int>) [14]
+-----------------------------------------------
+                0.01    0.00       1/1           read_image_f [19]
+[15]     0.0    0.01    0.00       1         iio_hacky_uncolorize [15]
+-----------------------------------------------
+                0.00    0.01       1/1           load_image(char*, std::vector<float, std::allocator<float> >&, unsigned int*, unsigned int*, unsigned int*) [22]
+[16]     0.0    0.00    0.01       1         iio_read_image_float_split [16]
+                0.00    0.01       1/1           read_image [18]
+                0.00    0.00       1/1           iio_convert_samples.constprop.1 [31]
+-----------------------------------------------
+                0.01    0.00       1/1           save_image(char*, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int) [23]
+[17]     0.0    0.01    0.00       1         iio_write_image_float_split [17]
+                0.00    0.00       1/1           iio_write_image_default [35]
+-----------------------------------------------
+                0.00    0.01       1/1           iio_read_image_float_split [16]
+[18]     0.0    0.00    0.01       1         read_image [18]
+                0.00    0.01       1/1           read_image_f [19]
+                0.00    0.00       1/1           comma_named_tiff [30]
+                0.00    0.00       1/2           xfopen [29]
+                0.00    0.00       1/2           xfclose [28]
+-----------------------------------------------
+                0.00    0.01       1/1           read_image [18]
+[19]     0.0    0.00    0.01       1         read_image_f [19]
+                0.01    0.00       1/1           iio_hacky_uncolorize [15]
+                0.00    0.00       1/1           rim_getint [36]
+-----------------------------------------------
+                0.01    0.00       2/2           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[20]     0.0    0.01    0.00       2         symetrize(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int) [20]
+                0.00    0.00       1/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                0.01    0.00       2/2           precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+[21]     0.0    0.01    0.00       2         std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >::_M_default_append(unsigned long) [21]
+-----------------------------------------------
+                                                 <spontaneous>
+[22]     0.0    0.00    0.01                 load_image(char*, std::vector<float, std::allocator<float> >&, unsigned int*, unsigned int*, unsigned int*) [22]
+                0.00    0.01       1/1           iio_read_image_float_split [16]
+                0.00    0.00       1/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                                                 <spontaneous>
+[23]     0.0    0.00    0.01                 save_image(char*, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int) [23]
+                0.01    0.00       1/1           iio_write_image_float_split [17]
+                0.00    0.00       1/1           iio_save_image_float_split [33]
+-----------------------------------------------
+                                                 <spontaneous>
+[24]     0.0    0.01    0.00                 bior_2d_forward_test(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, std::vector<unsigned int, std::allocator<unsigned int> >&) [24]
+-----------------------------------------------
+                                                 <spontaneous>
+[25]     0.0    0.01    0.00                 void std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > >::_M_realloc_insert<std::pair<float, unsigned int> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, std::pair<float, unsigned int>&&) [25]
+-----------------------------------------------
+                0.00    0.00       1/5           iio_write_image_default [35]
+                0.00    0.00       4/5           convert_data [27]
+[26]     0.0    0.00    0.00       5         iio_type_size [26]
+-----------------------------------------------
+                0.00    0.00       1/2           iio_convert_samples.constprop.1 [31]
+                0.00    0.00       1/2           iio_convert_samples.constprop.3 [32]
+[27]     0.0    0.00    0.00       2         convert_data [27]
+                0.00    0.00       4/5           iio_type_size [26]
+-----------------------------------------------
+                0.00    0.00       1/2           iio_write_image_as_png [34]
+                0.00    0.00       1/2           read_image [18]
+[28]     0.0    0.00    0.00       2         xfclose [28]
+-----------------------------------------------
+                0.00    0.00       1/2           iio_write_image_as_png [34]
+                0.00    0.00       1/2           read_image [18]
+[29]     0.0    0.00    0.00       2         xfopen [29]
+-----------------------------------------------
+                0.00    0.00       1/1           read_image [18]
+[30]     0.0    0.00    0.00       1         comma_named_tiff [30]
+-----------------------------------------------
+                0.00    0.00       1/1           iio_read_image_float_split [16]
+[31]     0.0    0.00    0.00       1         iio_convert_samples.constprop.1 [31]
+                0.00    0.00       1/2           convert_data [27]
+-----------------------------------------------
+                0.00    0.00       1/1           iio_write_image_default [35]
+[32]     0.0    0.00    0.00       1         iio_convert_samples.constprop.3 [32]
+                0.00    0.00       1/2           convert_data [27]
+-----------------------------------------------
+                0.00    0.00       1/1           save_image(char*, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int) [23]
+[33]     0.0    0.00    0.00       1         iio_save_image_float_split [33]
+-----------------------------------------------
+                0.00    0.00       1/1           iio_write_image_default [35]
+[34]     0.0    0.00    0.00       1         iio_write_image_as_png [34]
+                0.00    0.00       1/2           xfopen [29]
+                0.00    0.00       1/2           xfclose [28]
+-----------------------------------------------
+                                   1             iio_write_image_default [35]
+                0.00    0.00       1/1           iio_write_image_float_split [17]
+[35]     0.0    0.00    0.00       1+1       iio_write_image_default [35]
+                0.00    0.00       1/5           iio_type_size [26]
+                0.00    0.00       1/1           iio_convert_samples.constprop.3 [32]
+                0.00    0.00       1/1           iio_write_image_as_png [34]
+                                   1             iio_write_image_default [35]
+-----------------------------------------------
+                                   4             rim_getint [36]
+                0.00    0.00       1/1           read_image_f [19]
+[36]     0.0    0.00    0.00       1+4       rim_getint [36]
+                                   4             rim_getint [36]
+-----------------------------------------------
+                0.00    0.00 1234741/1234741     precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+[123]    0.0    0.00    0.00 1234741         void std::vector<unsigned int, std::allocator<unsigned int> >::_M_realloc_insert<unsigned int const&>(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned int const&) [123]
+-----------------------------------------------
+                0.00    0.00       1/14          bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       1/14          bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+                0.00    0.00       1/14          load_image(char*, std::vector<float, std::allocator<float> >&, unsigned int*, unsigned int*, unsigned int*) [22]
+                0.00    0.00       1/14          symetrize(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int) [20]
+                0.00    0.00       2/14          run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+                0.00    0.00       8/14          bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [129]
+[124]    0.0    0.00    0.00      14         std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                0.00    0.00       2/8           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       2/8           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+                0.00    0.00       4/8           precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [3]
+[125]    0.0    0.00    0.00       8         ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int) [125]
+-----------------------------------------------
+                0.00    0.00       4/4           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[126]    0.0    0.00    0.00       4         color_space_transform(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, bool) [126]
+-----------------------------------------------
+                0.00    0.00       3/3           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[127]    0.0    0.00    0.00       3         allocate_plan_2d(fftwf_plan_s**, unsigned int, fftw_r2r_kind_do_not_use_me, unsigned int) [127]
+-----------------------------------------------
+                0.00    0.00       1/2           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       1/2           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[128]    0.0    0.00    0.00       2         preProcess(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int) [128]
+-----------------------------------------------
+                0.00    0.00       1/2           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       1/2           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[129]    0.0    0.00    0.00       2         bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [129]
+                0.00    0.00       8/14          std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [124]
+-----------------------------------------------
+                0.00    0.00       1/2           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       1/2           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[130]    0.0    0.00    0.00       2         estimate_sigma(float, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [130]
+-----------------------------------------------
+                0.00    0.00       1/2           bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [4]
+                0.00    0.00       1/2           bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [2]
+[131]    0.0    0.00    0.00       2         std::vector<float, std::allocator<float> >::reserve(unsigned long) [131]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [156]
+[132]    0.0    0.00    0.00       1         _GLOBAL__sub_I__Z10load_imagePcRSt6vectorIfSaIfEEPjS4_S4_ [132]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [156]
+[133]    0.0    0.00    0.00       1         _GLOBAL__sub_I__Z11pick_optionPiPPcPKcS3_ [133]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [156]
+[134]    0.0    0.00    0.00       1         _GLOBAL__sub_I__Z16ComparaisonFirstSt4pairIfjES0_ [134]
+-----------------------------------------------
+                0.00    0.00       1/1           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[135]    0.0    0.00    0.00       1         power_of_2(unsigned int) [135]
+-----------------------------------------------
+                0.00    0.00       1/1           run_bm3d(float, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, bool, bool, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool) [1]
+[136]    0.0    0.00    0.00       1         ind_size(unsigned int, unsigned int, unsigned int) [136]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+ [132] _GLOBAL__sub_I__Z10load_imagePcRSt6vectorIfSaIfEEPjS4_S4_ [14] ComparaisonFirst(std::pair<float, unsigned int>, std::pair<float, unsigned int>) [27] convert_data
+ [133] _GLOBAL__sub_I__Z11pick_optionPiPPcPKcS3_ [127] allocate_plan_2d(fftwf_plan_s**, unsigned int, fftw_r2r_kind_do_not_use_me, unsigned int) [31] iio_convert_samples.constprop.1
+ [134] _GLOBAL__sub_I__Z16ComparaisonFirstSt4pairIfjES0_ [6] hadamard_transform(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [32] iio_convert_samples.constprop.3
+ [135] power_of_2(unsigned int) [24] bior_2d_forward_test(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, std::vector<unsigned int, std::allocator<unsigned int> >&) [15] iio_hacky_uncolorize
+ [128] preProcess(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int) [126] color_space_transform(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, bool) [16] iio_read_image_float_split
+ [129] bior15_coef(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [10] ht_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, float, std::vector<float, std::allocator<float> >&, bool) [33] iio_save_image_float_split
+   [4] bm3d_1st_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [5] wiener_filtering_hadamard(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, bool) [26] iio_type_size
+   [2] bm3d_2nd_step(float, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool, unsigned int, unsigned int, fftwf_plan_s**, fftwf_plan_s**, fftwf_plan_s**) [136] ind_size(unsigned int, unsigned int, unsigned int) [34] iio_write_image_as_png
+   [3] precompute_BM(std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, float) [20] symetrize(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int) [35] iio_write_image_default
+  [13] dct_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**) [21] std::vector<std::vector<unsigned int, std::allocator<unsigned int> >, std::allocator<std::vector<unsigned int, std::allocator<unsigned int> > > >::_M_default_append(unsigned long) [17] iio_write_image_float_split
+   [7] dct_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, fftwf_plan_s**, fftwf_plan_s**, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int) [25] void std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > >::_M_realloc_insert<std::pair<float, unsigned int> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, std::pair<float, unsigned int>&&) [18] read_image
+ [130] estimate_sigma(float, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int) [124] std::vector<float, std::allocator<float> >::_M_default_append(unsigned long) [19] read_image_f
+ [125] ind_initialize(std::vector<unsigned int, std::allocator<unsigned int> >&, unsigned int, unsigned int, unsigned int) [131] std::vector<float, std::allocator<float> >::reserve(unsigned long) [36] rim_getint
+  [12] bior_2d_forward(std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [123] void std::vector<unsigned int, std::allocator<unsigned int> >::_M_realloc_insert<unsigned int const&>(__gnu_cxx::__normal_iterator<unsigned int*, std::vector<unsigned int, std::allocator<unsigned int> > >, unsigned int const&) [28] xfclose
+   [8] bior_2d_inverse(std::vector<float, std::allocator<float> >&, unsigned int, unsigned int, std::vector<float, std::allocator<float> > const&, std::vector<float, std::allocator<float> > const&) [11] void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)> >(__gnu_cxx::__normal_iterator<std::pair<float, unsigned int>*, std::vector<std::pair<float, unsigned int>, std::allocator<std::pair<float, unsigned int> > > >, long, long, std::pair<float, unsigned int>, __gnu_cxx::__ops::_Iter_comp_iter<bool (*)(std::pair<float, unsigned int>, std::pair<float, unsigned int>)>) [29] xfopen
+   [9] bior_2d_process(std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> > const&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::vector<float, std::allocator<float> >&, std::vector<float, std::allocator<float> >&) [30] comma_named_tiff

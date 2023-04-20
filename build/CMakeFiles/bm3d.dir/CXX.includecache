@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/hassan/Desktop/TFM/bm3d-master/bm3d.cpp
+iostream
+-
+algorithm
+-
+math.h
+-
+bm3d.h
+/home/hassan/Desktop/TFM/bm3d-master/bm3d.h
+utilities.h
+/home/hassan/Desktop/TFM/bm3d-master/utilities.h
+lib_transforms.h
+/home/hassan/Desktop/TFM/bm3d-master/lib_transforms.h
+
+/home/hassan/Desktop/TFM/bm3d-master/bm3d.h
+fftw3.h
+-
+vector
+-
+omp.h
+-
+
+/home/hassan/Desktop/TFM/bm3d-master/lib_transforms.h
+vector
+-
+
+/home/hassan/Desktop/TFM/bm3d-master/utilities.h
+vector
+-
+fftw3.h
+-
+
