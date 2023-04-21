@@ -17,7 +17,6 @@
  * @author Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
  **/
 
-#include <iostream>
 #include <algorithm>
 #include <cmath>
 
@@ -36,100 +35,10 @@
  * http://www.ipol.im/pub/art/2012/l-bm3d/, not in the original paper.
  */
 
-#define DCTHRESH
-#define DCWIENER
-// #define MTRICK
-
 using namespace std;
 
 bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
     return pair1.first < pair2.first;
-}
-
-/** ----------------- **/
-/** - Main function - **/
-/** ----------------- **/
-/**
- * @brief run BM3D process.
- *
- * @param sigma: value of assumed noise of the noisy image;
- * @param img_noisy: noisy image;
- * @param img_basic: will be the basic estimation after the 1st step
- * @param img_denoised: will be the de-noised final image;
- * @param width, height: size of the image;
- * @param useSD_h (resp. useSD_w): if true, use weight based
- *        on the standard variation of the 3D group for the
- *        first (resp. second) step, otherwise use the number
- *        of non-zero coefficients after Hard Thresholding
- *        (resp. the norm of Wiener coefficients);
- * @param tau_2D_hard (resp. tau_2D_wien): 2D transform to apply
- *        on every 3D group for the first (resp. second) part.
- *        Allowed values are DCT and BIOR;
-
- * @param patch_size: overrides the default patch size selection.
- *        patch_size=0: use default behavior
- *        patch_size>0: size to be used
- * @param verbose: if true, print additional information;
- *
- **/
-int run_bm3d(const float sigma, vector<float> &img_noisy, vector<float> &img_basic, vector<float> &img_denoised,
-             const unsigned width, const unsigned height, const unsigned patch_size, const bool verbose) {
-    //! Parameters
-    const unsigned nHard = 16; //! Half size of the search window
-    const unsigned nWien = 16; //! Half size of the search window
-    const unsigned NHard = 16; //! Must be a power of 2
-    const unsigned NWien = 32; //! Must be a power of 2
-    const unsigned pHard = 3;
-    const unsigned pWien = 3;
-
-    //! Overrides size if patch_size>0, else default behavior (8 or 12 depending on test)
-    const unsigned kHard = patch_size;
-    const unsigned kWien = patch_size;
-
-    //! Check memory allocation
-    if (img_basic.size() != img_noisy.size())
-        img_basic.resize(img_noisy.size());
-    if (img_denoised.size() != img_noisy.size())
-        img_denoised.resize(img_noisy.size());
-
-    //! Add boundaries and makeSymmetrical them
-    const unsigned h_b = height + 2 * nHard;
-    const unsigned w_b = width + 2 * nHard;
-    vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
-    makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
-
-    //! Denoising, 1st Step
-    if (verbose)
-        cout << "BM3D 1st step...";
-    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, nHard, kHard, NHard, pHard);
-    if (verbose)
-        cout << "is done." << endl;
-
-    //! To avoid boundaries problem
-
-    unsigned dc_b = nHard * w_b + nHard;
-    unsigned dc = 0;
-    for (unsigned i = 0; i < height; i++)
-        for (unsigned j = 0; j < width; j++, dc++)
-            img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
-
-    makeSymmetrical(img_basic, img_sym_basic, width, height, nHard);
-
-    //! Denoising, 2nd Step
-    if (verbose)
-        cout << "BM3D 2nd step...";
-    bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised, w_b, h_b, nWien, kWien, NWien, pWien);
-    if (verbose)
-        cout << "is done." << endl;
-
-    //! Obtention of img_denoised
-
-    dc_b = nWien * w_b + nWien;
-    dc = 0;
-    for (unsigned i = 0; i < height; i++)
-        for (unsigned j = 0; j < width; j++, dc++)
-            img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
-    return EXIT_SUCCESS;
 }
 
 /**
@@ -143,18 +52,11 @@ int run_bm3d(const float sigma, vector<float> &img_noisy, vector<float> &img_bas
  * @param img_basic: will contain the denoised image after the 1st step;
  * @param width, height : size of img_noisy;
  * @param nHard: size of the boundary around img_noisy;
- * @param useSD: if true, use weight based on the standard variation
- *        of the 3D group for the first step, otherwise use the number
- *        of non-zero coefficients after Hard-thresholding;
 
- * @param plan_2d_for_1, plan_2d_for_2, plan_2d_inv : for convenience. Used
- *        by fftw.
- *
  * @return none.
  **/
 void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
-                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned NHard,
-                   const unsigned pHard) {
+                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
@@ -167,10 +69,11 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<unsigned> column_ind;
     ind_initialize(column_ind, width - kHard + 1, nHard, pHard);
     const unsigned kHard_2 = kHard * kHard;
-    vector<float> group_3D_table(kHard_2 * NHard * column_ind.size());
+
+    vector<float> group_3D_table(kHard_2 * nHard * column_ind.size());
     vector<float> wx_r_table;
     wx_r_table.reserve(column_ind.size());
-    vector<float> hadamard_tmp(NHard);
+    vector<float> hadamard_tmp(nHard);
 
     //! Check allocation memory
     if (img_basic.size() != img_noisy.size())
@@ -192,7 +95,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
-    precompute_BM(patch_table, img_noisy, width, height, kHard, NHard, nHard, pHard, tauMatch);
+    precompute_BM(patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch);
 
     //! table_2D[p * N + q + (i * width + j) * kHard_2 + c * (2 * nHard + 1) * width * kHard_2]
     vector<float> table_2D((2 * nHard + 1) * width * kHard_2, 0.0f);
@@ -294,7 +197,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
  **/
 void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic,
                    vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned nWien,
-                   const unsigned kWien, const unsigned NWien, const unsigned pWien) {
+                   const unsigned kWien, const unsigned pWien) {
     //! Parameters initialization
     const float tauMatch = (sigma < 35.0f ? 400.f
                                           : 3500.f); //! threshold used to determinate similarity between patches
@@ -305,10 +208,10 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<unsigned> column_ind;
     ind_initialize(column_ind, width - kWien + 1, nWien, pWien);
     const unsigned kWien_2 = kWien * kWien;
-    vector<float> group_3D_table(kWien_2 * NWien * column_ind.size());
+    vector<float> group_3D_table(kWien_2 * nWien * column_ind.size());
     vector<float> wx_r_table;
     wx_r_table.reserve(column_ind.size());
-    vector<float> tmp(NWien);
+    vector<float> tmp(nWien);
 
     //! Check allocation memory
     if (img_denoised.size() != img_noisy.size())
@@ -326,7 +229,7 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
-    precompute_BM(patch_table, img_basic, width, height, kWien, NWien, nWien, pWien, tauMatch);
+    precompute_BM(patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch);
 
     //! Preprocessing of Bior table
     vector<float> lpd, hpd, lpr, hpr;
@@ -501,11 +404,8 @@ void ht_filtering_hadamard(vector<float> &group_3D, vector<float> &tmp, const un
 
     const float T = lambdaHard3D * sigma * coef_norm;
     for (unsigned k = 0; k < kHard_2 * nSx_r; k++) {
-#ifdef DCTHRESH
+
         if (fabs(group_3D[k]) > T)
-#else
-            if (k < 1 || fabs(group_3D[k]) > T)
-#endif
             (*weight)++;
         else
             group_3D[k] = 0.0f;
@@ -552,15 +452,8 @@ void wiener_filtering_hadamard(vector<float> &group_3D_img, vector<float> &group
     }
 
     //! Wiener Filtering
-#ifdef DCWIENER
-    for (unsigned k = 0; k < kWien_2 * nSx_r; k++)
-#else
-        group_3D_est[0] = group_3D_img[0] * coef;
-        // Add the weight corresponding to the DC components that were not passed through the Wiener filter
-        (*weight) += 1;
-        for (unsigned k = 1; k < kWien_2 * nSx_r; k++)
-#endif
-    {
+
+    for (unsigned k = 0; k < kWien_2 * nSx_r; k++) {
         float value = group_3D_est[k] * group_3D_est[k] * coef;
         value /= (value + sigma * sigma);
         group_3D_est[k] = group_3D_img[k] * value * coef;
@@ -716,35 +609,35 @@ preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> 
  * @return none.
  **/
 void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &img, const unsigned width,
-                   const unsigned height, const unsigned kHW, const unsigned NHW, const unsigned nHW,
-                   const unsigned pHW, const float tauMatch) {
+                   const unsigned height, const unsigned kHW, const unsigned NHW, const unsigned pHW,
+                   const float tauMatch) {
     //! Declarations
-    const unsigned Ns = 2 * nHW + 1;
+    const unsigned Ns = 2 * NHW + 1;
     const float threshold = tauMatch * kHW * kHW;
     vector<float> diff_table(width * height);
-    vector<vector<float>> sum_table((nHW + 1) * Ns, vector<float>(width * height, 2 * threshold));
+    vector<vector<float>> sum_table((NHW + 1) * Ns, vector<float>(width * height, 2 * threshold));
     if (patch_table.size() != width * height)
         patch_table.resize(width * height);
     vector<unsigned> row_ind;
-    ind_initialize(row_ind, height - kHW + 1, nHW, pHW);
+    ind_initialize(row_ind, height - kHW + 1, NHW, pHW);
     vector<unsigned> column_ind;
-    ind_initialize(column_ind, width - kHW + 1, nHW, pHW);
+    ind_initialize(column_ind, width - kHW + 1, NHW, pHW);
 
     //! For each possible distance, precompute inter-patches distance
-    for (unsigned di = 0; di <= nHW; di++)
+    for (unsigned di = 0; di <= NHW; di++)
         for (unsigned dj = 0; dj < Ns; dj++) {
-            const int dk = (int) (di * width + dj) - (int) nHW;
+            const int dk = (int) (di * width + dj) - (int) NHW;
             const unsigned ddk = di * Ns + dj;
 
             //! Process the image containing the square distance between pixels
-            for (unsigned i = nHW; i < height - nHW; i++) {
-                unsigned k = i * width + nHW;
-                for (unsigned j = nHW; j < width - nHW; j++, k++)
+            for (unsigned i = NHW; i < height - NHW; i++) {
+                unsigned k = i * width + NHW;
+                for (unsigned j = NHW; j < width - NHW; j++, k++)
                     diff_table[k] = (img[k + dk] - img[k]) * (img[k + dk] - img[k]);
             }
 
             //! Compute the sum for each patches, using the method of the integral images
-            const unsigned dn = nHW * width + nHW;
+            const unsigned dn = NHW * width + NHW;
             //! 1st patch, top left corner
             float value = 0.0f;
             for (unsigned p = 0; p < kHW; p++) {
@@ -755,8 +648,8 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             sum_table[ddk][dn] = value;
 
             //! 1st row, top
-            for (unsigned j = nHW + 1; j < width - nHW; j++) {
-                const unsigned ind = nHW * width + j - 1;
+            for (unsigned j = NHW + 1; j < width - NHW; j++) {
+                const unsigned ind = NHW * width + j - 1;
                 float sum = sum_table[ddk][ind];
                 for (unsigned p = 0; p < kHW; p++)
                     sum += diff_table[ind + p * width + kHW] - diff_table[ind + p * width];
@@ -764,8 +657,8 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             }
 
             //! General case
-            for (unsigned i = nHW + 1; i < height - nHW; i++) {
-                const unsigned ind = (i - 1) * width + nHW;
+            for (unsigned i = NHW + 1; i < height - NHW; i++) {
+                const unsigned ind = (i - 1) * width + NHW;
                 float sum = sum_table[ddk][ind];
                 //! 1st column, left
                 for (unsigned q = 0; q < kHW; q++)
@@ -773,9 +666,9 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                 sum_table[ddk][ind + width] = sum;
 
                 //! Other columns
-                unsigned k = i * width + nHW + 1;
-                unsigned pq = (i + kHW - 1) * width + kHW - 1 + nHW + 1;
-                for (unsigned j = nHW + 1; j < width - nHW; j++, k++, pq++) {
+                unsigned k = i * width + NHW + 1;
+                unsigned pq = (i + kHW - 1) * width + kHW - 1 + NHW + 1;
+                for (unsigned j = NHW + 1; j < width - NHW; j++, k++, pq++) {
                     sum_table[ddk][k] =
                             sum_table[ddk][k - 1] + sum_table[ddk][k - width] - sum_table[ddk][k - 1 - width] +
                             diff_table[pq] - diff_table[pq - kHW] - diff_table[pq - kHW * width] +
@@ -797,14 +690,14 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             patch_table[k_r].clear();
 
             //! Threshold distances in order to keep similar patches
-            for (int dj = -(int) nHW; dj <= (int) nHW; dj++) {
-                for (int di = 0; di <= (int) nHW; di++)
-                    if (sum_table[dj + nHW + di * Ns][k_r] < threshold)
-                        table_distance.push_back(make_pair(sum_table[dj + nHW + di * Ns][k_r], k_r + di * width + dj));
+            for (int dj = -(int) NHW; dj <= (int) NHW; dj++) {
+                for (int di = 0; di <= (int) NHW; di++)
+                    if (sum_table[dj + NHW + di * Ns][k_r] < threshold)
+                        table_distance.push_back(make_pair(sum_table[dj + NHW + di * Ns][k_r], k_r + di * width + dj));
 
-                for (int di = -(int) nHW; di < 0; di++)
-                    if (sum_table[-dj + nHW + (-di) * Ns][k_r + di * width + dj] < threshold)
-                        table_distance.push_back(make_pair(sum_table[-dj + nHW + (-di) * Ns][k_r + di * width + dj],
+                for (int di = -(int) NHW; di < 0; di++)
+                    if (sum_table[-dj + NHW + (-di) * Ns][k_r + di * width + dj] < threshold)
+                        table_distance.push_back(make_pair(sum_table[-dj + NHW + (-di) * Ns][k_r + di * width + dj],
                                                            k_r + di * width + dj));
             }
 
@@ -815,7 +708,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
 
             //! To avoid problem
             if (nSx_r == 1 && table_distance.empty()) {
-                //				cout << "problem size" << endl;
+
                 table_distance.push_back(make_pair(0, k_r));
             }
 
@@ -826,11 +719,6 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             for (unsigned n = 0; n < nSx_r; n++)
                 patch_table[k_r].push_back(table_distance[n].second);
 
-#ifdef MTRICK
-            //! To avoid problem
-            if (nSx_r == 1)
-                patch_table[k_r].push_back(table_distance[0].second);
-#endif
         }
     }
 }

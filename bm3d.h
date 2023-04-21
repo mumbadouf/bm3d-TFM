@@ -2,21 +2,6 @@
 #define BM3D_H_INCLUDED
 #include <vector>
 
-/** ------------------ **/
-/** - Main functions - **/
-/** ------------------ **/
-//! Main function
-int run_bm3d(
-    float sigma
-,   std::vector<float> &img_noisy
-,   std::vector<float> &img_basic
-,   std::vector<float> &img_denoised
-,    unsigned width
-,    unsigned height
-,    unsigned patch_size = 0
-,    bool verbose = false
-);
-
 //! 1st step of BM3D
 void bm3d_1st_step(
      float sigma
@@ -26,7 +11,6 @@ void bm3d_1st_step(
 ,    unsigned height
 ,    unsigned nHard
 ,    unsigned kHard
-,    unsigned NHard
 ,    unsigned pHard
 );
 
@@ -40,7 +24,6 @@ void bm3d_2nd_step(
 ,    unsigned height
 ,    unsigned nWien
 ,    unsigned kWien
-,    unsigned NWien
 ,    unsigned pWien
 );
 
@@ -108,7 +91,6 @@ void precompute_BM(
 ,    unsigned height
 ,    unsigned kHW
 ,    unsigned NHW
-,    unsigned n
 ,    unsigned pHW
 ,    float    tauMatch
 );

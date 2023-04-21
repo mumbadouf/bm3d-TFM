@@ -13,21 +13,18 @@ using namespace std;
 // v: pointer to original argv
 // o: option name after hyphen
 // d: default value (if NULL, the option takes no argument)
-const char *pick_option(int *c, char **v, const char *o, const char *d)
-{
-  int id = d ? 1 : 0;
-  for (int i = 0; i < *c - id; i++)
-  {
-    if (v[i][0] == '-' && 0 == strcmp(v[i] + 1, o))
-    {
-      char *r = v[i + id] + 1 - id;
-      for (int j = i; j < *c - id; j++)
-        v[j] = v[j + id + 1];
-      *c -= id + 1;
-      return r;
+const char *pick_option(int *c, char **v, const char *o, const char *d) {
+    int id = d ? 1 : 0;
+    for (int i = 0; i < *c - id; i++) {
+        if (v[i][0] == '-' && 0 == strcmp(v[i] + 1, o)) {
+            char *r = v[i + id] + 1 - id;
+            for (int j = i; j < *c - id; j++)
+                v[j] = v[j + id + 1];
+            *c -= id + 1;
+            return r;
+        }
     }
-  }
-  return d;
+    return d;
 }
 
 /**
@@ -37,49 +34,97 @@ const char *pick_option(int *c, char **v, const char *o, const char *d)
  *
  * @author MARC LEBRUN  <marc.lebrun@cmla.ens-cachan.fr>
  */
-int main(int argc, char **argv)
-{
-  //! Variables initialization
-  const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
+int main(int argc, char **argv) {
+    //! Variables initialization
+    const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
 
-  const int patch_size = 8;
+    const int patch_size = 8;
 
-  //! Check if there is the right call for the algorithm
-  if (argc < 4)
-  {
-    cerr << "usage: " << argv[0] << " input sigma output [basic]\n\
-             [-verbose]"
-         << endl;
-    return EXIT_FAILURE;
-  }
+    //! Check if there is the right call for the algorithm
+    if (argc < 4) {
+        cerr << "usage: " << argv[0] << " input sigma output [-verbose]" << endl;
+        return EXIT_FAILURE;
+    }
 
-  //! Declarations
-  vector<float> img_noisy, img_basic, img_denoised;
-  unsigned width, height;
+    //! Declarations
+    vector<float> img_noisy, img_basic, img_denoised;
+    unsigned width, height;
 
-  //! Load image
-  if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
-    return EXIT_FAILURE;
+    //! Load image
+    if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
-  float fSigma = strtof(argv[2], nullptr);
-  double start = omp_get_wtime();
-  //! Denoising
-  if (run_bm3d(fSigma, img_noisy, img_basic, img_denoised, width, height,
-               patch_size,
-               verbose) != EXIT_SUCCESS)
-    return EXIT_FAILURE;
+    float sigma = strtof(argv[2], nullptr);
+    double start = omp_get_wtime();
+    /*------------------------------------------------------------*/
+    //! Denoising
 
-  double end = omp_get_wtime();
-  cout << "Time: " << end - start << "s" << endl;
+    //! Parameters
+    const unsigned nHard = 16; //! Half size of the search window
+    const unsigned nWien = 16; //! Half size of the search window
+    const unsigned pHard = 3;
+    const unsigned pWien = 3;
 
-  //! save noisy, denoised and differences images
-  cout << endl
-       << "Save images...";
+    //! Overrides size if patch_size>0, else default behavior (8 or 12 depending on test)
+    const unsigned kHard = patch_size;
+    const unsigned kWien = patch_size;
 
-  if (save_image(argv[3], img_denoised, width, height) != EXIT_SUCCESS)
-    return EXIT_FAILURE;
+    //! Check memory allocation
+    if (img_basic.size() != img_noisy.size())
+        img_basic.resize(img_noisy.size());
+    if (img_denoised.size() != img_noisy.size())
+        img_denoised.resize(img_noisy.size());
 
-  cout << "done." << endl;
+    //! Add boundaries and make them Symmetrical
+    const unsigned h_b = height + 2 * nHard;
+    const unsigned w_b = width + 2 * nHard;
+    vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
 
-  return EXIT_SUCCESS;
+    makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
+
+    //! Denoising, 1st Step
+    if (verbose)
+        cout << "BM3D 1st step...";
+    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, nHard, kHard, pHard);
+    if (verbose)
+        cout << "is done." << endl;
+
+    //! To avoid boundaries problem
+
+    //copy img_sym_basic center (without boundaries) then make boundaries symmetrical
+    unsigned dc_b = nHard * w_b + nHard;
+    unsigned dc = 0;
+    for (unsigned i = 0; i < height; i++)
+        for (unsigned j = 0; j < width; j++, dc++)
+            img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
+
+    makeSymmetrical(img_basic, img_sym_basic, width, height, nHard);
+
+    //! Denoising, 2nd Step
+    if (verbose)
+        cout << "BM3D 2nd step...";
+    bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised, w_b, h_b, nWien, kWien, pWien);
+    if (verbose)
+        cout << "is done." << endl;
+
+    //! Obtention of img_denoised
+    //copy img_sym_denoised center (without boundaries)
+    dc_b = nWien * w_b + nWien;
+    dc = 0;
+    for (unsigned i = 0; i < height; i++)
+        for (unsigned j = 0; j < width; j++, dc++)
+            img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
+    /*------------------------------------------------------------*/
+    double end = omp_get_wtime();
+    cout << "Time: " << end - start << "s" << endl;
+
+    //! save noisy, denoised and differences images
+    cout << endl << "Save images...";
+
+    if (save_image(argv[3], img_denoised, width, height) != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    cout << "done." << endl;
+
+    return EXIT_SUCCESS;
 }

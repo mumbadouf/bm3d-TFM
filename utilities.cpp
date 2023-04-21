@@ -105,27 +105,28 @@ int save_image(char *name, std::vector<float> &img, const unsigned width, const 
 
 
 /**
+ *
  * @brief Add boundaries by symetry
  *
  * @param img : image to makeSymmetrical
  * @param img_sym : will contain img with symetrized boundaries
  * @param width, height : size of img
- * @param N : size of the boundary
+ * @param nHard : size of the boundary
  *
  * @return none.
  **/
 void
 makeSymmetrical(const std::vector<float> &img, std::vector<float> &img_sym, const unsigned width, const unsigned height,
-                const unsigned N) {
+                const unsigned nHard) {
     //! Declaration
-    const unsigned w = width + 2 * N;
-    const unsigned h = height + 2 * N;
+    const unsigned w = width + 2 * nHard;
+    const unsigned h = height + 2 * nHard;
 
     if (img_sym.size() != w * h)
         img_sym.resize(w * h);
 
     unsigned dc = 0;
-    unsigned dc_2 = 0 + N * w + N;
+    unsigned dc_2 = 0 + nHard * w + nHard;
 
     //! Center of the image
     for (unsigned i = 0; i < height; i++)
@@ -135,21 +136,19 @@ makeSymmetrical(const std::vector<float> &img, std::vector<float> &img_sym, cons
     //! Top and bottom
     dc_2 = 0;
     for (unsigned j = 0; j < w; j++, dc_2++)
-        for (unsigned i = 0; i < N; i++) {
-            img_sym[dc_2 + i * w] = img_sym[dc_2 + (2 * N - i - 1) * w];
-            img_sym[dc_2 + (h - i - 1) * w] = img_sym[dc_2 + (h - 2 * N + i) * w];
+        for (unsigned i = 0; i < nHard; i++) {
+            img_sym[dc_2 + i * w] = img_sym[dc_2 + (2 * nHard - i - 1) * w];
+            img_sym[dc_2 + (h - i - 1) * w] = img_sym[dc_2 + (h - 2 * nHard + i) * w];
         }
-
     //! Right and left
     dc_2 = 0;
     for (unsigned i = 0; i < h; i++) {
         const unsigned di = dc_2 + i * w;
-        for (unsigned j = 0; j < N; j++) {
-            img_sym[di + j] = img_sym[di + 2 * N - j - 1];
-            img_sym[di + w - j - 1] = img_sym[di + w - 2 * N + j];
+        for (unsigned j = 0; j < nHard; j++) {
+            img_sym[di + j] = img_sym[di + 2 * nHard - j - 1];
+            img_sym[di + w - j - 1] = img_sym[di + w - 2 * nHard + j];
         }
     }
-
 }
 
 
@@ -173,20 +172,20 @@ int closest_power_of_2(const unsigned n) {
  *
  * @param ind_set: will contain the set of indices;
  * @param max_size: indices can't go over this size;
- * @param N : boundary;
- * @param step: step between two indices.
+ * @param nHard : boundary;
+ * @param pHard: pHard between two indices.
  *
  * @return none.
  **/
-void ind_initialize(vector<unsigned> &ind_set, const unsigned max_size, const unsigned N, const unsigned step) {
+void ind_initialize(vector<unsigned> &ind_set, const unsigned max_size, const unsigned nHard, const unsigned pHard) {
     ind_set.clear();
-    unsigned ind = N;
-    while (ind < max_size - N) {
+    unsigned ind = nHard;
+    while (ind < max_size - nHard) {
         ind_set.push_back(ind);
-        ind += step;
+        ind += pHard;
     }
-    if (ind_set.back() < max_size - N - 1)
-        ind_set.push_back(max_size - N - 1);
+    if (ind_set.back() < max_size - nHard - 1)
+        ind_set.push_back(max_size - nHard - 1);
 }
  
  

@@ -26,7 +26,7 @@ void makeSymmetrical(
 ,   std::vector<float> &img_sym
 ,    unsigned width
 ,    unsigned height
-,    unsigned N
+,    unsigned nHard
 );
  
 //! Look for the closest power of 2 number
@@ -38,8 +38,8 @@ int closest_power_of_2(
 void ind_initialize(
     std::vector<unsigned> &ind_set
 ,    unsigned max_size
-,    unsigned N
-,    unsigned step
+,    unsigned nHard
+,    unsigned pHard
 );
  
  
