@@ -19,9 +19,8 @@
  **/
 
 #include "lib_transforms.h"
-#include <math.h>
+#include <cmath>
 
-#include <numeric>
 
 using namespace std;
 

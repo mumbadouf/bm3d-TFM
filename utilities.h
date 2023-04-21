@@ -15,31 +15,31 @@ int load_image(
 int save_image(
     char* name
 ,   std::vector<float> &img
-,   const unsigned width
-,   const unsigned height
+,    unsigned width
+,    unsigned height
 );
  
 
-//! Add boundaries by symetry
-void symetrize(
+//! Add boundaries by makeSymmetrical
+void makeSymmetrical(
     const std::vector<float> &img
 ,   std::vector<float> &img_sym
-,   const unsigned width
-,   const unsigned height
-,   const unsigned N
+,    unsigned width
+,    unsigned height
+,    unsigned N
 );
  
 //! Look for the closest power of 2 number
 int closest_power_of_2(
-    const unsigned n
+     unsigned n
 );
 
 //! Initialize a set of indices
 void ind_initialize(
     std::vector<unsigned> &ind_set
-,   const unsigned max_size
-,   const unsigned N
-,   const unsigned step
+,    unsigned max_size
+,    unsigned N
+,    unsigned step
 );
  
  

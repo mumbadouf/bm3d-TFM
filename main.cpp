@@ -1,17 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <math.h>
-#include <string.h>
+#include <cstring>
 #include <omp.h>
 
 #include "bm3d.h"
 #include "utilities.h"
-
-#define HADAMARD 6
-#define NONE 7
 
 using namespace std;
 
@@ -46,7 +40,7 @@ const char *pick_option(int *c, char **v, const char *o, const char *d)
 int main(int argc, char **argv)
 {
   //! Variables initialization
-  const bool verbose = pick_option(&argc, argv, "verbose", NULL) != NULL;
+  const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
 
   const int patch_size = 8;
 
@@ -67,7 +61,7 @@ int main(int argc, char **argv)
   if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
     return EXIT_FAILURE;
 
-  float fSigma = atof(argv[2]);
+  float fSigma = strtof(argv[2], nullptr);
   double start = omp_get_wtime();
   //! Denoising
   if (run_bm3d(fSigma, img_noisy, img_basic, img_denoised, width, height,

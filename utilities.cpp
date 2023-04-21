@@ -18,22 +18,13 @@
  **/
 
 #include <iostream>
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-#include <math.h>
+#include <cstdlib>
 
 #include "utilities.h"
-extern "C"
-{
+
+extern "C" {
 #include "iio.h"
 }
-
-#define YUV 0
-#define YCBCR 1
-#define OPP 2
-#define RGB 3
-
 using namespace std;
 
 /**
@@ -45,30 +36,25 @@ using namespace std;
  *
  * @return EXIT_SUCCESS if the image has been loaded, EXIT_FAILURE otherwise
  **/
-int load_image(
-    char *name, vector<float> &img, unsigned *width, unsigned *height)
-{
+int load_image(char *name, vector<float> &img, unsigned *width, unsigned *height) {
     //! read input image
-    cout << endl
-         << "Read input image...";
+    cout << endl << "Read input image...";
     size_t h, w, c;
-    float *tmp = NULL;
+    float *tmp;
     int ih, iw, ic;
 
     tmp = iio_read_image_float_split(name, &iw, &ih, &ic);
     w = iw;
     h = ih;
     c = ic;
-    if (!tmp)
-    {
+    if (!tmp) {
         cout << "error :: " << name << " not found or not a correct image" << endl;
         return EXIT_FAILURE;
     }
     cout << "done." << endl;
 
     //! test if image is really a color image and exclude the alpha channel
-    if (c > 2)
-    {
+    if (c > 2) {
         unsigned k = 0;
         while (k < w * h && tmp[k] == tmp[w * h + k] && tmp[k] == tmp[2 * w * h + k])
             k++;
@@ -101,11 +87,9 @@ int load_image(
  *
  * @return EXIT_SUCCESS if the image has been saved, EXIT_FAILURE otherwise
  **/
-int save_image(
-    char *name, std::vector<float> &img, const unsigned width, const unsigned height)
-{
+int save_image(char *name, std::vector<float> &img, const unsigned width, const unsigned height) {
     //! Allocate Memory
-    float *tmp = new float[width * height];
+    auto *tmp = new float[width * height];
 
     //! Check for boundary problems
     for (unsigned k = 0; k < width * height; k++)
@@ -118,21 +102,21 @@ int save_image(
 
     return EXIT_SUCCESS;
 }
- 
+
 
 /**
  * @brief Add boundaries by symetry
  *
- * @param img : image to symetrize
+ * @param img : image to makeSymmetrical
  * @param img_sym : will contain img with symetrized boundaries
  * @param width, height : size of img
  * @param N : size of the boundary
  *
  * @return none.
  **/
-void symetrize(
-    const std::vector<float> &img, std::vector<float> &img_sym, const unsigned width, const unsigned height, const unsigned N)
-{
+void
+makeSymmetrical(const std::vector<float> &img, std::vector<float> &img_sym, const unsigned width, const unsigned height,
+                const unsigned N) {
     //! Declaration
     const unsigned w = width + 2 * N;
     const unsigned h = height + 2 * N;
@@ -151,27 +135,23 @@ void symetrize(
     //! Top and bottom
     dc_2 = 0;
     for (unsigned j = 0; j < w; j++, dc_2++)
-        for (unsigned i = 0; i < N; i++)
-        {
+        for (unsigned i = 0; i < N; i++) {
             img_sym[dc_2 + i * w] = img_sym[dc_2 + (2 * N - i - 1) * w];
             img_sym[dc_2 + (h - i - 1) * w] = img_sym[dc_2 + (h - 2 * N + i) * w];
         }
 
     //! Right and left
     dc_2 = 0;
-    for (unsigned i = 0; i < h; i++)
-    {
+    for (unsigned i = 0; i < h; i++) {
         const unsigned di = dc_2 + i * w;
-        for (unsigned j = 0; j < N; j++)
-        {
+        for (unsigned j = 0; j < N; j++) {
             img_sym[di + j] = img_sym[di + 2 * N - j - 1];
             img_sym[di + w - j - 1] = img_sym[di + w - 2 * N + j];
         }
     }
 
-    return;
 }
-  
+
 
 /**
  * @brief Look for the closest power of 2 number
@@ -180,9 +160,7 @@ void symetrize(
  *
  * @return the closest power of 2 lower or equal to n
  **/
-int closest_power_of_2(
-    const unsigned n)
-{
+int closest_power_of_2(const unsigned n) {
     unsigned r = 1;
     while (r * 2 <= n)
         r *= 2;
@@ -200,13 +178,10 @@ int closest_power_of_2(
  *
  * @return none.
  **/
-void ind_initialize(
-    vector<unsigned> &ind_set, const unsigned max_size, const unsigned N, const unsigned step)
-{
+void ind_initialize(vector<unsigned> &ind_set, const unsigned max_size, const unsigned N, const unsigned step) {
     ind_set.clear();
     unsigned ind = N;
-    while (ind < max_size - N)
-    {
+    while (ind < max_size - N) {
         ind_set.push_back(ind);
         ind += step;
     }

@@ -7,10 +7,10 @@
 void bior_2d_forward(
     std::vector<float> const& input
 ,   std::vector<float> &output
-,   const unsigned N
-,   const unsigned d_i
-,   const unsigned r_i
-,   const unsigned d_o
+,    unsigned N
+,    unsigned d_i
+,    unsigned r_i
+,    unsigned d_o
 ,   std::vector<float> const& lpd
 ,   std::vector<float> const& hpd
 );
@@ -18,8 +18,8 @@ void bior_2d_forward(
 //! Compute a Bior1.5 2D inverse
 void bior_2d_inverse(
     std::vector<float> &signal
-,   const unsigned N
-,   const unsigned d_s
+,    unsigned N
+,    unsigned d_s
 ,   std::vector<float> const& lpr
 ,   std::vector<float> const& hpr
 );
@@ -36,20 +36,20 @@ void bior15_coef(
 void hadamard_transform(
     std::vector<float> &vec
 ,   std::vector<float> &tmp
-,   const unsigned N
-,   const unsigned d
+,    unsigned N
+,    unsigned d
 );
 
 //! Process the log2 of N
 unsigned log2(
-    const unsigned N
+     unsigned N
 );
 
 //! Obtain index for periodic extension
 void per_ext_ind(
     std::vector<unsigned> &ind_per
-,   const unsigned N
-,   const unsigned L
+,    unsigned N
+,    unsigned L
 );
 
 #endif // LIB_TRANSFORMS_INCLUDED
