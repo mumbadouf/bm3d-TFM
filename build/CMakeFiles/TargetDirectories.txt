@@ -1,3 +1,0 @@
-/home/hassan/Desktop/TFM/bm3d-master/build/CMakeFiles/edit_cache.dir
-/home/hassan/Desktop/TFM/bm3d-master/build/CMakeFiles/rebuild_cache.dir
-/home/hassan/Desktop/TFM/bm3d-master/build/CMakeFiles/bm3d.dir
