@@ -143,7 +143,6 @@ bm3d: /usr/lib/x86_64-linux-gnu/libtiff.so
 bm3d: /usr/lib/x86_64-linux-gnu/libjpeg.so
 bm3d: /usr/lib/x86_64-linux-gnu/libpng.so
 bm3d: /usr/lib/x86_64-linux-gnu/libz.so
-bm3d: /usr/lib/x86_64-linux-gnu/libfftw3f.so
 bm3d: CMakeFiles/bm3d.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/hassan/Desktop/TFM/bm3d-master/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable bm3d"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/bm3d.dir/link.txt --verbose=$(VERBOSE)
