@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   double start = omp_get_wtime();
   //! Denoising
   if (run_bm3d(fSigma, img_noisy, img_basic, img_denoised, width, height,
-                patch_size,
+               patch_size,
                verbose) != EXIT_SUCCESS)
     return EXIT_FAILURE;
 

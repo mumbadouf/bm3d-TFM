@@ -18,11 +18,7 @@ int save_image(
 ,   const unsigned width
 ,   const unsigned height
 );
-
-//! Check if a number is a power of 2
-bool power_of_2(
-    const unsigned n
-);
+ 
 
 //! Add boundaries by symetry
 void symetrize(
@@ -32,23 +28,7 @@ void symetrize(
 ,   const unsigned height
 ,   const unsigned N
 );
-
-//! Compute the PSNR and RMSE between img_1 and img_2
-int compute_psnr(
-    const std::vector<float> &img_1
-,   const std::vector<float> &img_2
-,   float *psnr
-,   float *rmse
-);
-
-//! Compute the difference images between img_1 and img_2
-int compute_diff(
-    const std::vector<float> &img_1
-,   const std::vector<float> &img_2
-,   std::vector<float> &img_diff
-,   const float sigma
-);
-
+ 
 //! Look for the closest power of 2 number
 int closest_power_of_2(
     const unsigned n
@@ -61,23 +41,8 @@ void ind_initialize(
 ,   const unsigned N
 ,   const unsigned step
 );
-
-//! For convenience
-unsigned ind_size(
-    const unsigned max_size
-,   const unsigned N
-,   const unsigned step
-);
-
-//! Tabulated values of log2(2^n)
-unsigned ind_log2(
-    const unsigned N
-);
-
-//! Tabulated values of 2^N
-unsigned ind_pow2(
-    const unsigned N
-);
+ 
+ 
 
 
 #endif // UTILITIES_H_INCLUDED

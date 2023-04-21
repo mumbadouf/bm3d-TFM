@@ -15,19 +15,6 @@ void bior_2d_forward(
 ,   std::vector<float> const& hpd
 );
 
-void bior_2d_forward_test(
-    std::vector<float> const& input
-,   std::vector<float> &output
-,   const unsigned N
-,   const unsigned d_i
-,   const unsigned r_i
-,   const unsigned d_o
-,   std::vector<float> const& lpd
-,   std::vector<float> const& hpd
-,   std::vector<float> &tmp
-,   std::vector<unsigned> &ind_per
-);
-
 //! Compute a Bior1.5 2D inverse
 void bior_2d_inverse(
     std::vector<float> &signal

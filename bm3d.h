@@ -90,18 +90,6 @@ void wiener_filtering_hadamard(
 ,   float * weight
 );
 
-//! Apply a bior1.5 spline wavelet on a vector of size N x N.
-void bior1_5_transform(
-    std::vector<float> const& input
-,   std::vector<float> &output
-,   const unsigned N
-,   std::vector<float> const& bior_table
-,   const unsigned d_i
-,   const unsigned d_o
-,   const unsigned N_i
-,   const unsigned N_o
-);
-
 /** ---------------------------------- **/
 /** - Preprocessing / Postprocessing - **/
 /** ---------------------------------- **/

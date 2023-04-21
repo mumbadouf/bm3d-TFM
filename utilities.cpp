@@ -118,24 +118,7 @@ int save_image(
 
     return EXIT_SUCCESS;
 }
-
-/**
- * @brief Check if a number is a power of 2
- **/
-bool power_of_2(
-    const unsigned n)
-{
-    if (n == 0)
-        return false;
-
-    if (n == 1)
-        return true;
-
-    if (n % 2 == 0)
-        return power_of_2(n / 2);
-    else
-        return false;
-}
+ 
 
 /**
  * @brief Add boundaries by symetry
@@ -188,67 +171,7 @@ void symetrize(
 
     return;
 }
-
-/**
- * @brief Compute PSNR and RMSE between img_1 and img_2
- *
- * @param img_1 : pointer to an allocated array of pixels.
- * @param img_2 : pointer to an allocated array of pixels.
- * @param psnr  : will contain the PSNR
- * @param rmse  : will contain the RMSE
- *
- * @return EXIT_FAILURE if both images haven't the same size.
- **/
-int compute_psnr(
-    const vector<float> &img_1, const vector<float> &img_2, float *psnr, float *rmse)
-{
-    if (img_1.size() != img_2.size())
-    {
-        cout << "Can't compute PSNR & RMSE: images have different sizes: " << endl;
-        cout << "img_1 : " << img_1.size() << endl;
-        cout << "img_2 : " << img_2.size() << endl;
-        return EXIT_FAILURE;
-    }
-
-    float tmp = 0.0f;
-    for (unsigned k = 0; k < img_1.size(); k++)
-        tmp += (img_1[k] - img_2[k]) * (img_1[k] - img_2[k]);
-
-    (*rmse) = sqrtf(tmp / (float)img_1.size());
-    (*psnr) = 20.0f * log10f(255.0f / (*rmse));
-
-    return EXIT_SUCCESS;
-}
-
-/**
- * @brief Compute a difference image between img_1 and img_2
- **/
-int compute_diff(
-    const std::vector<float> &img_1, const std::vector<float> &img_2, std::vector<float> &img_diff, const float sigma)
-{
-    if (img_1.size() != img_2.size())
-    {
-        cout << "Can't compute difference, img_1 and img_2 don't have the same size" << endl;
-        cout << "img_1 : " << img_1.size() << endl;
-        cout << "img_2 : " << img_2.size() << endl;
-        return EXIT_FAILURE;
-    }
-
-    const unsigned size = img_1.size();
-
-    if (img_diff.size() != size)
-        img_diff.resize(size);
-
-    const float s = 4.0f * sigma;
-
-    for (unsigned k = 0; k < size; k++)
-    {
-        float value = (img_1[k] - img_2[k] + s) * 255.0f / (2.0f * s);
-        img_diff[k] = (value < 0.0f ? 0.0f : (value > 255.0f ? 255.0f : value));
-    }
-
-    return EXIT_SUCCESS;
-}
+  
 
 /**
  * @brief Look for the closest power of 2 number
@@ -290,52 +213,6 @@ void ind_initialize(
     if (ind_set.back() < max_size - N - 1)
         ind_set.push_back(max_size - N - 1);
 }
-
-/**
- * @brief For convenience. Estimate the size of the ind_set vector built
- *        with the function ind_initialize().
- *
- * @return size of ind_set vector built in ind_initialize().
- **/
-unsigned ind_size(
-    const unsigned max_size, const unsigned N, const unsigned step)
-{
-    unsigned ind = N;
-    unsigned k = 0;
-    while (ind < max_size - N)
-    {
-        k++;
-        ind += step;
-    }
-    if (ind - step < max_size - N - 1)
-        k++;
-
-    return k;
-}
-
-
-/**
- * @brief tabulated values of log2(N), where N = 2 ^ n.
- *
- * @param N : must be a power of 2 smaller than 64
- *
- * @return n = log2(N)
- **/
-unsigned ind_log2(
-    const unsigned N)
-{
-    return (N == 1 ? 0 : (N == 2 ? 1 : (N == 4 ? 2 : (N == 8 ? 3 : (N == 16 ? 4 : (N == 32 ? 5 : 6))))));
-}
-
-/**
- * @brief tabulated values of log2(N), where N = 2 ^ n.
- *
- * @param N : must be a power of 2 smaller than 64
- *
- * @return n = 2 ^ N
- **/
-unsigned ind_pow2(
-    const unsigned N)
-{
-    return (N == 0 ? 1 : (N == 1 ? 2 : (N == 2 ? 4 : (N == 3 ? 8 : (N == 4 ? 16 : (N == 5 ? 32 : 64))))));
-}
+ 
+ 
+ 
