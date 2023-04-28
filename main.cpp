@@ -70,14 +70,12 @@ int main(int argc, char **argv) {
     const unsigned kWien = patch_size;
 
     //! Check memory allocation
-    if (img_basic.size() != img_noisy.size())
-        img_basic.resize(img_noisy.size());
-    if (img_denoised.size() != img_noisy.size())
-        img_denoised.resize(img_noisy.size());
+    img_basic.resize(img_noisy.size());
+    img_denoised.resize(img_noisy.size());
 
     //! Add boundaries and make them Symmetrical
-    const unsigned h_b = height + 2 * nHard;
-    const unsigned w_b = width + 2 * nHard;
+    const unsigned heightBoundary = height + 2 * nHard;
+    const unsigned widthBoundary = width + 2 * nHard;
     vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
 
     makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
@@ -85,35 +83,36 @@ int main(int argc, char **argv) {
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";
-    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, w_b, h_b, nHard, kHard, pHard);
+    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard);
     if (verbose)
         cout << "is done." << endl;
 
     //! To avoid boundaries problem
 
     //copy img_sym_basic center (without boundaries) then make boundaries symmetrical
-    unsigned dc_b = nHard * w_b + nHard;
+    unsigned dc_b = nHard * widthBoundary + nHard;
     unsigned dc = 0;
     for (unsigned i = 0; i < height; i++)
         for (unsigned j = 0; j < width; j++, dc++)
-            img_basic[dc] = img_sym_basic[dc_b + i * w_b + j];
+            img_basic[dc] = img_sym_basic[dc_b + i * widthBoundary + j];
 
     makeSymmetrical(img_basic, img_sym_basic, width, height, nHard);
 
     //! Denoising, 2nd Step
     if (verbose)
         cout << "BM3D 2nd step...";
-    bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised, w_b, h_b, nWien, kWien, pWien);
+    bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised, widthBoundary, heightBoundary, nWien, kWien,
+                  pWien);
     if (verbose)
         cout << "is done." << endl;
 
     //! Obtention of img_denoised
     //copy img_sym_denoised center (without boundaries)
-    dc_b = nWien * w_b + nWien;
+    dc_b = nWien * widthBoundary + nWien;
     dc = 0;
     for (unsigned i = 0; i < height; i++)
         for (unsigned j = 0; j < width; j++, dc++)
-            img_denoised[dc] = img_sym_denoised[dc_b + i * w_b + j];
+            img_denoised[dc] = img_sym_denoised[dc_b + i * widthBoundary + j];
     /*------------------------------------------------------------*/
     double end = omp_get_wtime();
     cout << "Time: " << end - start << "s" << endl;
