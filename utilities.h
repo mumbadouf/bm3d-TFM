@@ -2,6 +2,7 @@
 #define UTILITIES_H_INCLUDED
 
 #include <vector>
+#include <string>
 
 //! Read image and check number of channels
 int load_image(
@@ -41,8 +42,20 @@ void ind_initialize(
 ,    unsigned nHard
 ,    unsigned pHard
 );
- 
- 
+
+void print_vector(std::string const &msg,
+    std::vector<float> const &vec,
+    int width,
+    int height);
+void print_vector(const std::string& msg,
+        std::vector<unsigned> const &vec,
+        int width,
+        int height);
+void print_vector(const std::string& msg,
+                  std::vector<unsigned> const &vec,
+                  int width,
+                  int height,
+                  int depth);
 
 
 #endif // UTILITIES_H_INCLUDED

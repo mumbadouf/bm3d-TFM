@@ -26,10 +26,10 @@ void bior_2d_inverse(
 
 //! Precompute the Bior1.5 coefficients
 void bior15_coef(
-    std::vector<float> &lp1
-,   std::vector<float> &hp1
-,   std::vector<float> &lp2
-,   std::vector<float> &hp2
+    std::vector<float> &low_freq_forward
+,   std::vector<float> &high_freq_forward
+,   std::vector<float> &low_freq_backward
+,   std::vector<float> &high_freq_backward
 );
 
 //! Apply Walsh-Hadamard transform (non normalized) on a vector of size N = 2^n

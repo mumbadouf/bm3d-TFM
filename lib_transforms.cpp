@@ -203,72 +203,72 @@ void bior_2d_inverse(
  * @brief Initialize forward and backward low and high filter
  *        for a Bior1.5 spline wavelet.
  *
- * @param lp1: low frequencies forward filter;
- * @param hp1: high frequencies forward filter;
- * @param lp2: low frequencies backward filter;
- * @param hp2: high frequencies backward filter.
+ * @param low_freq_forward: low frequencies forward filter;
+ * @param high_freq_forward: high frequencies forward filter;
+ * @param low_freq_backward: low frequencies backward filter;
+ * @param high_freq_backward: high frequencies backward filter.
  **/
 void bior15_coef(
-    vector<float> &lp1
-,   vector<float> &hp1
-,   vector<float> &lp2
-,   vector<float> &hp2
+    vector<float> &low_freq_forward
+,   vector<float> &high_freq_forward
+,   vector<float> &low_freq_backward
+,   vector<float> &high_freq_backward
 ){
     const float coef_norm = 1.f / (sqrtf(2.f) * 128.f);
     const float sqrt2_inv = 1.f / sqrtf(2.f);
 
-    lp1.resize(10);
-    lp1[0] =  3.f  ;
-    lp1[1] = -3.f  ;
-    lp1[2] = -22.f ;
-    lp1[3] =  22.f ;
-    lp1[4] =  128.f;
-    lp1[5] =  128.f;
-    lp1[6] =  22.f ;
-    lp1[7] = -22.f ;
-    lp1[8] = -3.f  ;
-    lp1[9] =  3.f  ;
+    low_freq_forward.resize(10);
+    low_freq_forward[0] =  3.f  ;
+    low_freq_forward[1] = -3.f  ;
+    low_freq_forward[2] = -22.f ;
+    low_freq_forward[3] =  22.f ;
+    low_freq_forward[4] =  128.f;
+    low_freq_forward[5] =  128.f;
+    low_freq_forward[6] =  22.f ;
+    low_freq_forward[7] = -22.f ;
+    low_freq_forward[8] = -3.f  ;
+    low_freq_forward[9] =  3.f  ;
 
-    hp1.resize(10);
-    hp1[0] =  0.f;
-    hp1[1] =  0.f;
-    hp1[2] =  0.f;
-    hp1[3] =  0.f;
-    hp1[4] = -sqrt2_inv;
-    hp1[5] =  sqrt2_inv;
-    hp1[6] =  0.f;
-    hp1[7] =  0.f;
-    hp1[8] =  0.f;
-    hp1[9] =  0.f;
+    high_freq_forward.resize(10);
+    high_freq_forward[0] =  0.f;
+    high_freq_forward[1] =  0.f;
+    high_freq_forward[2] =  0.f;
+    high_freq_forward[3] =  0.f;
+    high_freq_forward[4] = -sqrt2_inv;
+    high_freq_forward[5] =  sqrt2_inv;
+    high_freq_forward[6] =  0.f;
+    high_freq_forward[7] =  0.f;
+    high_freq_forward[8] =  0.f;
+    high_freq_forward[9] =  0.f;
 
-    lp2.resize(10);
-    lp2[0] = 0.f;
-    lp2[1] = 0.f;
-    lp2[2] = 0.f;
-    lp2[3] = 0.f;
-    lp2[4] = sqrt2_inv;
-    lp2[5] = sqrt2_inv;
-    lp2[6] = 0.f;
-    lp2[7] = 0.f;
-    lp2[8] = 0.f;
-    lp2[9] = 0.f;
+    low_freq_backward.resize(10);
+    low_freq_backward[0] = 0.f;
+    low_freq_backward[1] = 0.f;
+    low_freq_backward[2] = 0.f;
+    low_freq_backward[3] = 0.f;
+    low_freq_backward[4] = sqrt2_inv;
+    low_freq_backward[5] = sqrt2_inv;
+    low_freq_backward[6] = 0.f;
+    low_freq_backward[7] = 0.f;
+    low_freq_backward[8] = 0.f;
+    low_freq_backward[9] = 0.f;
 
-    hp2.resize(10);
-    hp2[0] =  3.f  ;
-    hp2[1] =  3.f  ;
-    hp2[2] = -22.f ;
-    hp2[3] = -22.f ;
-    hp2[4] =  128.f;
-    hp2[5] = -128.f;
-    hp2[6] =  22.f ;
-    hp2[7] =  22.f ;
-    hp2[8] = -3.f  ;
-    hp2[9] = -3.f  ;
+    high_freq_backward.resize(10);
+    high_freq_backward[0] =  3.f  ;
+    high_freq_backward[1] =  3.f  ;
+    high_freq_backward[2] = -22.f ;
+    high_freq_backward[3] = -22.f ;
+    high_freq_backward[4] =  128.f;
+    high_freq_backward[5] = -128.f;
+    high_freq_backward[6] =  22.f ;
+    high_freq_backward[7] =  22.f ;
+    high_freq_backward[8] = -3.f  ;
+    high_freq_backward[9] = -3.f  ;
 
     for (unsigned k = 0; k < 10; k++)
     {
-        lp1[k] *= coef_norm;
-        hp2[k] *= coef_norm;
+        low_freq_forward[k] *= coef_norm;
+        high_freq_backward[k] *= coef_norm;
     }
 }
 

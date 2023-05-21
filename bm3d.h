@@ -89,9 +89,9 @@ void precompute_BM(
 ,   const std::vector<float> &img
 ,    unsigned width
 ,    unsigned height
-,    unsigned kHW
-,    unsigned NHW
-,    unsigned pHW
+,    unsigned patch_size
+,    unsigned nHard
+,    unsigned pHard
 ,    float    tauMatch
 );
 

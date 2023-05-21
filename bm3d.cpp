@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "bm3d.h"
 #include "utilities.h"
@@ -62,43 +63,44 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
     const float tauMatch =
             (3.f) * (sigma < 35.0f ? 2500.f : 5000.f); //! threshold used to determinate similarity between patches
-
-    //! Initialization for convenience
-    vector<unsigned> row_ind;
-    ind_initialize(row_ind, height - kHard + 1, nHard, pHard);
-    vector<unsigned> column_ind;
-    ind_initialize(column_ind, width - kHard + 1, nHard, pHard);
-    const unsigned kHard_2 = kHard * kHard;
-
-    vector<float> group_3D_table(kHard_2 * nHard * column_ind.size());
-    vector<float> wx_r_table;
-    wx_r_table.reserve(column_ind.size());
-    vector<float> hadamard_tmp(nHard);
-
-    //! Check allocation memory
-    if (img_basic.size() != img_noisy.size())
-        img_basic.resize(img_noisy.size());
-
+    const unsigned kHard_squared = kHard * kHard;
     //! Preprocessing (KaiserWindow, Threshold, DCT normalization, ...)
-    vector<float> kaiser_window(kHard_2);
-    vector<float> coef_norm(kHard_2);
-    vector<float> coef_norm_inv(kHard_2);
-    preProcess(kaiser_window, coef_norm, coef_norm_inv, kHard);
+    vector<float> kaiser_window(kHard_squared);
+    vector<float> coef_norm(kHard_squared);
+    vector<float> coef_norm_inv(kHard_squared);
 
     //! Preprocessing of Bior table
     vector<float> lpd, hpd, lpr, hpr;
-    bior15_coef(lpd, hpd, lpr, hpr);
+    //! Initialization for convenience
+    vector<unsigned> row_ind;
+    vector<unsigned> column_ind;
+    vector<float> group_3D_table;
+    vector<float> wx_r_table;
+    vector<float> hadamard_tmp(nHard);
 
     //! For aggregation part
     vector<float> denominator(width * height, 0.0f);
     vector<float> numerator(width * height, 0.0f);
 
+    ind_initialize(row_ind, height - kHard + 1, nHard, pHard);
+    ind_initialize(column_ind, width - kHard + 1, nHard, pHard);
+
+    group_3D_table.resize(kHard_squared * nHard * column_ind.size());
+    wx_r_table.reserve(column_ind.size());
+
+    //! Check allocation memory
+    if (img_basic.size() != img_noisy.size())
+        img_basic.resize(img_noisy.size());
+
+    preProcess(kaiser_window, coef_norm, coef_norm_inv, kHard);
+    bior15_coef(lpd, hpd, lpr, hpr);
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
+    //  MPI STARTS HERE
     precompute_BM(patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch);
 
-    //! table_2D[p * N + q + (i * width + j) * kHard_2 + c * (2 * nHard + 1) * width * kHard_2]
-    vector<float> table_2D((2 * nHard + 1) * width * kHard_2, 0.0f);
+    //! table_2D[p * N + q + (i * width + j) * kHard_squared + c * (2 * nHard + 1) * width * kHard_squared]
+    vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
 
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
@@ -120,12 +122,12 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
             const unsigned nSx_r = patch_table[k_r].size();
 
             //! Build of the 3D group
-            vector<float> group_3D(nSx_r * kHard_2, 0.0f);
+            vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
 
             for (unsigned n = 0; n < nSx_r; n++) {
                 const unsigned ind = patch_table[k_r][n] + (nHard - i_r) * width;
-                for (unsigned k = 0; k < kHard_2; k++)
-                    group_3D[n + k * nSx_r + 0] = table_2D[k + ind * kHard_2 + 0];
+                for (unsigned k = 0; k < kHard_squared; k++)
+                    group_3D[n + k * nSx_r + 0] = table_2D[k + ind * kHard_squared + 0];
             }
 
             //! HT filtering of the 3D group
@@ -135,7 +137,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
             //! Save the 3D group. The DCT 2D inverse will be done after.
 
             for (unsigned n = 0; n < nSx_r; n++)
-                for (unsigned k = 0; k < kHard_2; k++)
+                for (unsigned k = 0; k < kHard_squared; k++)
                     group_3D_table.push_back(group_3D[n + k * nSx_r + 0]);
 
             //! Save weighting
@@ -160,12 +162,12 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
                     for (unsigned q = 0; q < kHard; q++) {
                         const unsigned ind = k + p * width + q;
                         numerator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j] *
-                                          group_3D_table[p * kHard + q + n * kHard_2 + 0 + dec];
+                                          group_3D_table[p * kHard + q + n * kHard_squared + 0 + dec];
                         denominator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j];
                     }
             }
 
-            dec += nSx_r * kHard_2;
+            dec += nSx_r * kHard_squared;
         }
 
     } //! End of loop on i_r
@@ -497,96 +499,46 @@ bior_2d_inverse(vector<float> &group_3D_table, const unsigned kHW, vector<float>
 void
 preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> &coef_norm_inv, const unsigned kHW) {
     //! Kaiser Window coefficients
-    if (kHW == 8) {
-        //! First quarter of the matrix
-        kaiserWindow[0 + kHW * 0] = 0.1924f;
-        kaiserWindow[0 + kHW * 1] = 0.2989f;
-        kaiserWindow[0 + kHW * 2] = 0.3846f;
-        kaiserWindow[0 + kHW * 3] = 0.4325f;
-        kaiserWindow[1 + kHW * 0] = 0.2989f;
-        kaiserWindow[1 + kHW * 1] = 0.4642f;
-        kaiserWindow[1 + kHW * 2] = 0.5974f;
-        kaiserWindow[1 + kHW * 3] = 0.6717f;
-        kaiserWindow[2 + kHW * 0] = 0.3846f;
-        kaiserWindow[2 + kHW * 1] = 0.5974f;
-        kaiserWindow[2 + kHW * 2] = 0.7688f;
-        kaiserWindow[2 + kHW * 3] = 0.8644f;
-        kaiserWindow[3 + kHW * 0] = 0.4325f;
-        kaiserWindow[3 + kHW * 1] = 0.6717f;
-        kaiserWindow[3 + kHW * 2] = 0.8644f;
-        kaiserWindow[3 + kHW * 3] = 0.9718f;
 
-        //! Completing the rest of the matrix by symmetry
-        for (unsigned i = 0; i < kHW / 2; i++)
-            for (unsigned j = kHW / 2; j < kHW; j++)
-                kaiserWindow[i + kHW * j] = kaiserWindow[i + kHW * (kHW - j - 1)];
+    //! First quarter of the matrix
+    kaiserWindow[0 + kHW * 0] = 0.1924f;
+    kaiserWindow[0 + kHW * 1] = 0.2989f;
+    kaiserWindow[0 + kHW * 2] = 0.3846f;
+    kaiserWindow[0 + kHW * 3] = 0.4325f;
+    kaiserWindow[1 + kHW * 0] = 0.2989f;
+    kaiserWindow[1 + kHW * 1] = 0.4642f;
+    kaiserWindow[1 + kHW * 2] = 0.5974f;
+    kaiserWindow[1 + kHW * 3] = 0.6717f;
+    kaiserWindow[2 + kHW * 0] = 0.3846f;
+    kaiserWindow[2 + kHW * 1] = 0.5974f;
+    kaiserWindow[2 + kHW * 2] = 0.7688f;
+    kaiserWindow[2 + kHW * 3] = 0.8644f;
+    kaiserWindow[3 + kHW * 0] = 0.4325f;
+    kaiserWindow[3 + kHW * 1] = 0.6717f;
+    kaiserWindow[3 + kHW * 2] = 0.8644f;
+    kaiserWindow[3 + kHW * 3] = 0.9718f;
 
-        for (unsigned i = kHW / 2; i < kHW; i++)
-            for (unsigned j = 0; j < kHW; j++)
-                kaiserWindow[i + kHW * j] = kaiserWindow[kHW - i - 1 + kHW * j];
-    } else if (kHW == 12) {
-        //! First quarter of the matrix
-        kaiserWindow[0 + kHW * 0] = 0.1924f;
-        kaiserWindow[0 + kHW * 1] = 0.2615f;
-        kaiserWindow[0 + kHW * 2] = 0.3251f;
-        kaiserWindow[0 + kHW * 3] = 0.3782f;
-        kaiserWindow[0 + kHW * 4] = 0.4163f;
-        kaiserWindow[0 + kHW * 5] = 0.4362f;
-        kaiserWindow[1 + kHW * 0] = 0.2615f;
-        kaiserWindow[1 + kHW * 1] = 0.3554f;
-        kaiserWindow[1 + kHW * 2] = 0.4419f;
-        kaiserWindow[1 + kHW * 3] = 0.5139f;
-        kaiserWindow[1 + kHW * 4] = 0.5657f;
-        kaiserWindow[1 + kHW * 5] = 0.5927f;
-        kaiserWindow[2 + kHW * 0] = 0.3251f;
-        kaiserWindow[2 + kHW * 1] = 0.4419f;
-        kaiserWindow[2 + kHW * 2] = 0.5494f;
-        kaiserWindow[2 + kHW * 3] = 0.6390f;
-        kaiserWindow[2 + kHW * 4] = 0.7033f;
-        kaiserWindow[2 + kHW * 5] = 0.7369f;
-        kaiserWindow[3 + kHW * 0] = 0.3782f;
-        kaiserWindow[3 + kHW * 1] = 0.5139f;
-        kaiserWindow[3 + kHW * 2] = 0.6390f;
-        kaiserWindow[3 + kHW * 3] = 0.7433f;
-        kaiserWindow[3 + kHW * 4] = 0.8181f;
-        kaiserWindow[3 + kHW * 5] = 0.8572f;
-        kaiserWindow[4 + kHW * 0] = 0.4163f;
-        kaiserWindow[4 + kHW * 1] = 0.5657f;
-        kaiserWindow[4 + kHW * 2] = 0.7033f;
-        kaiserWindow[4 + kHW * 3] = 0.8181f;
-        kaiserWindow[4 + kHW * 4] = 0.9005f;
-        kaiserWindow[4 + kHW * 5] = 0.9435f;
-        kaiserWindow[5 + kHW * 0] = 0.4362f;
-        kaiserWindow[5 + kHW * 1] = 0.5927f;
-        kaiserWindow[5 + kHW * 2] = 0.7369f;
-        kaiserWindow[5 + kHW * 3] = 0.8572f;
-        kaiserWindow[5 + kHW * 4] = 0.9435f;
-        kaiserWindow[5 + kHW * 5] = 0.9885f;
+    //! Completing the rest of the matrix by symmetry
+    for (unsigned i = 0; i < kHW / 2; i++)
+        for (unsigned j = kHW / 2; j < kHW; j++)
+            kaiserWindow[i + kHW * j] = kaiserWindow[i + kHW * (kHW - j - 1)];
 
-        //! Completing the rest of the matrix by symmetry
-        for (unsigned i = 0; i < kHW / 2; i++)
-            for (unsigned j = kHW / 2; j < kHW; j++)
-                kaiserWindow[i + kHW * j] = kaiserWindow[i + kHW * (kHW - j - 1)];
-
-        for (unsigned i = kHW / 2; i < kHW; i++)
-            for (unsigned j = 0; j < kHW; j++)
-                kaiserWindow[i + kHW * j] = kaiserWindow[kHW - i - 1 + kHW * j];
-    } else
-        for (unsigned k = 0; k < kHW * kHW; k++)
-            kaiserWindow[k] = 1.0f;
+    for (unsigned i = kHW / 2; i < kHW; i++)
+        for (unsigned j = 0; j < kHW; j++)
+            kaiserWindow[i + kHW * j] = kaiserWindow[kHW - i - 1 + kHW * j];
 
     //! Coefficient of normalization for DCT II and DCT II inverse
     const float coef = 0.5f / ((float) (kHW));
     for (unsigned i = 0; i < kHW; i++)
         for (unsigned j = 0; j < kHW; j++) {
             if (i == 0 && j == 0) {
-                coef_norm[i * kHW + j] = 0.5f * coef;
-                coef_norm_inv[i * kHW + j] = 2.0f;
+                coef_norm[0] = 0.5f * coef;
+                coef_norm_inv[0] = 2.0f;
             } else if (i * j == 0) {
                 coef_norm[i * kHW + j] = SQRT2_INV * coef;
                 coef_norm_inv[i * kHW + j] = SQRT2;
             } else {
-                coef_norm[i * kHW + j] = 1.0f * coef;
+                coef_norm[i * kHW + j] = coef;
                 coef_norm_inv[i * kHW + j] = 1.0f;
             }
         }
@@ -600,83 +552,92 @@ preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> 
  * all coordinate of its similar patches
  * @param img: noisy image on which the distance is computed
  * @param width, height: size of img
- * @param kHW: size of patch
- * @param NHW: maximum similar patches wanted
- * @param nHW: size of the boundary of img
+ * @param patch_size: size of patch
+ * @param nHard: maximum similar patches wanted (half-size of search window)
+ * @param pHard: size of the boundary of img
  * @param tauMatch: threshold used to determinate similarity between
  *        patches
  *
  * @return none.
  **/
 void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &img, const unsigned width,
-                   const unsigned height, const unsigned kHW, const unsigned NHW, const unsigned pHW,
+                   const unsigned height, const unsigned patch_size, const unsigned nHard, const unsigned pHard,
                    const float tauMatch) {
     //! Declarations
-    const unsigned Ns = 2 * NHW + 1;
-    const float threshold = tauMatch * kHW * kHW;
-    vector<float> diff_table(width * height);
-    vector<vector<float>> sum_table((NHW + 1) * Ns, vector<float>(width * height, 2 * threshold));
+    //nHard= 16;pHard= 3;patch_size= 8;
+    const unsigned Ns = 2 * nHard + 1;
+    const float threshold = tauMatch * (float)(patch_size * patch_size);
+    vector<float> diff_table(width * height);//same size as img
+    vector<vector<float>> sum_table((nHard + 1) * Ns, vector<float>(width * height, 2 * threshold));
     if (patch_table.size() != width * height)
         patch_table.resize(width * height);
     vector<unsigned> row_ind;
-    ind_initialize(row_ind, height - kHW + 1, NHW, pHW);
     vector<unsigned> column_ind;
-    ind_initialize(column_ind, width - kHW + 1, NHW, pHW);
 
     //! For each possible distance, precompute inter-patches distance
-    for (unsigned di = 0; di <= NHW; di++)
-        for (unsigned dj = 0; dj < Ns; dj++) {
-            const int dk = (int) (di * width + dj) - (int) NHW;
-            const unsigned ddk = di * Ns + dj;
+    for (unsigned i_nHard = 0; i_nHard <= nHard; i_nHard++) { //0 to 16
+        for (unsigned dj = 0; dj < Ns; dj++) { //0 to 33(exclusive)
+            const int dk = (int) (i_nHard * width + dj) - (int) nHard;
+            const unsigned ddk = i_nHard * Ns + dj;
 
             //! Process the image containing the square distance between pixels
-            for (unsigned i = NHW; i < height - NHW; i++) {
-                unsigned k = i * width + NHW;
-                for (unsigned j = NHW; j < width - NHW; j++, k++)
+            for (unsigned row = nHard; row < height - nHard; row++) {
+                unsigned k = row * width + nHard;
+                for (unsigned col = nHard; col < width - nHard; col++, k++) {
                     diff_table[k] = (img[k + dk] - img[k]) * (img[k + dk] - img[k]);
+                    cout << k << " " << dk << endl;
+                    cout <<  img[k] << " " << img[k + dk]  << endl;
+                }
+//                cout << "row loop"<<endl;
             }
+//            cout << "NS Loop" << endl;
 
             //! Compute the sum for each patches, using the method of the integral images
-            const unsigned dn = NHW * width + NHW;
+            const unsigned dn = nHard * width + nHard;
             //! 1st patch, top left corner
             float value = 0.0f;
-            for (unsigned p = 0; p < kHW; p++) {
+            for (unsigned p = 0; p < patch_size; p++) {
                 unsigned pq = p * width + dn;
-                for (unsigned q = 0; q < kHW; q++, pq++)
+                for (unsigned q = 0; q < patch_size; q++, pq++)
                     value += diff_table[pq];
             }
             sum_table[ddk][dn] = value;
 
             //! 1st row, top
-            for (unsigned j = NHW + 1; j < width - NHW; j++) {
-                const unsigned ind = NHW * width + j - 1;
+            for (unsigned j = nHard; j < width - nHard; j++) {
+                const unsigned ind = nHard * width + j;
                 float sum = sum_table[ddk][ind];
-                for (unsigned p = 0; p < kHW; p++)
-                    sum += diff_table[ind + p * width + kHW] - diff_table[ind + p * width];
+                for (unsigned p = 0; p < patch_size; p++) {
+                    sum += diff_table[ind + p * width + patch_size] - diff_table[ind + p * width];
+                }
                 sum_table[ddk][ind + 1] = sum;
             }
 
             //! General case
-            for (unsigned i = NHW + 1; i < height - NHW; i++) {
-                const unsigned ind = (i - 1) * width + NHW;
+            for (unsigned i = nHard + 1; i < height - nHard; i++) {
+                const unsigned ind = (i - 1) * width + nHard;
                 float sum = sum_table[ddk][ind];
                 //! 1st column, left
-                for (unsigned q = 0; q < kHW; q++)
-                    sum += diff_table[ind + kHW * width + q] - diff_table[ind + q];
+                for (unsigned q = 0; q < patch_size; q++) {
+                    sum += diff_table[ind + patch_size * width + q] - diff_table[ind + q];
+                }
                 sum_table[ddk][ind + width] = sum;
 
                 //! Other columns
-                unsigned k = i * width + NHW + 1;
-                unsigned pq = (i + kHW - 1) * width + kHW - 1 + NHW + 1;
-                for (unsigned j = NHW + 1; j < width - NHW; j++, k++, pq++) {
+                unsigned k = i * width + nHard + 1;
+                unsigned pq = (i + patch_size - 1) * width + patch_size - 1 + nHard + 1;
+                for (unsigned j = nHard + 1; j < width - nHard; j++, k++, pq++) {
                     sum_table[ddk][k] =
                             sum_table[ddk][k - 1] + sum_table[ddk][k - width] - sum_table[ddk][k - 1 - width] +
-                            diff_table[pq] - diff_table[pq - kHW] - diff_table[pq - kHW * width] +
-                            diff_table[pq - kHW - kHW * width];
+                            diff_table[pq] - diff_table[pq - patch_size] - diff_table[pq - patch_size * width] +
+                            diff_table[pq - patch_size - patch_size * width];
                 }
             }
         }
-
+//        cout << "i_nHard loop" << endl;
+    }
+    ind_initialize(row_ind, height - patch_size + 1, nHard, pHard);
+    ind_initialize(column_ind, width - patch_size + 1, nHard, pHard);
     //! Precompute Bloc Matching
     vector<pair<float, unsigned>> table_distance;
     //! To avoid reallocation
@@ -690,21 +651,22 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             patch_table[k_r].clear();
 
             //! Threshold distances in order to keep similar patches
-            for (int dj = -(int) NHW; dj <= (int) NHW; dj++) {
-                for (int di = 0; di <= (int) NHW; di++)
-                    if (sum_table[dj + NHW + di * Ns][k_r] < threshold)
-                        table_distance.push_back(make_pair(sum_table[dj + NHW + di * Ns][k_r], k_r + di * width + dj));
+            for (int dj = -(int) nHard; dj <= (int) nHard; dj++) {
+                for (int di = 0; di <= (int) nHard; di++)
+                    if (sum_table[dj + nHard + di * Ns][k_r] < threshold)
+                        table_distance.push_back(
+                                make_pair(sum_table[dj + nHard + di * Ns][k_r], k_r + di * width + dj));
 
-                for (int di = -(int) NHW; di < 0; di++)
-                    if (sum_table[-dj + NHW + (-di) * Ns][k_r + di * width + dj] < threshold)
-                        table_distance.push_back(make_pair(sum_table[-dj + NHW + (-di) * Ns][k_r + di * width + dj],
+                for (int di = -(int) nHard; di < 0; di++)
+                    if (sum_table[-dj + nHard + (-di) * Ns][k_r + di * width + dj] < threshold)
+                        table_distance.push_back(make_pair(sum_table[-dj + nHard + (-di) * Ns][k_r + di * width + dj],
                                                            k_r + di * width + dj));
             }
 
             //! We need a power of 2 for the number of similar patches,
             //! because of the Welsh-Hadamard transform on the third dimension.
-            //! We assume that NHW is already a power of 2
-            const unsigned nSx_r = (NHW > table_distance.size() ? closest_power_of_2(table_distance.size()) : NHW);
+            //! We assume that nHard is already a power of 2
+            const unsigned nSx_r = (nHard > table_distance.size() ? closest_power_of_2(table_distance.size()) : nHard);
 
             //! To avoid problem
             if (nSx_r == 1 && table_distance.empty()) {
@@ -715,7 +677,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             //! Sort patches according to their distance to the reference one
             partial_sort(table_distance.begin(), table_distance.begin() + nSx_r, table_distance.end(), compareFirst);
 
-            //! Keep a maximum of NHW similar patches
+            //! Keep a maximum of nHard similar patches
             for (unsigned n = 0; n < nSx_r; n++)
                 patch_table[k_r].push_back(table_distance[n].second);
 

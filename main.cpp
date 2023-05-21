@@ -37,8 +37,14 @@ const char *pick_option(int *c, char **v, const char *o, const char *d) {
 int main(int argc, char **argv) {
     //! Variables initialization
     const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
-
+    //! Parameters
+    const unsigned nHard = 16; //! Half size of the search window
+    const unsigned nWien = 16; //! Half size of the search window
+    const unsigned pHard = 3;
+    const unsigned pWien = 3;
     const int patch_size = 8;
+    const unsigned kHard = patch_size;
+    const unsigned kWien = patch_size;
 
     //! Check if there is the right call for the algorithm
     if (argc < 4) {
@@ -48,26 +54,21 @@ int main(int argc, char **argv) {
 
     //! Declarations
     vector<float> img_noisy, img_basic, img_denoised;
-    unsigned width, height;
+    unsigned width = 20, height = 20;
 
     //! Load image
-    if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
-        return EXIT_FAILURE;
+//    if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
+//        return EXIT_FAILURE;
+    img_noisy.resize(width * height);
+    for (int i = 0; i < (int)height; i++)
+        for (int j = 0; j < (int)width; j++)
+            img_noisy[i * width + j] = (float)(i * width + j) ;
 
+  //  print_vector("img_noisy:",img_noisy, (int)width, (int)height);
     float sigma = strtof(argv[2], nullptr);
     double start = omp_get_wtime();
     /*------------------------------------------------------------*/
     //! Denoising
-
-    //! Parameters
-    const unsigned nHard = 16; //! Half size of the search window
-    const unsigned nWien = 16; //! Half size of the search window
-    const unsigned pHard = 3;
-    const unsigned pWien = 3;
-
-    //! Overrides size if patch_size>0, else default behavior (8 or 12 depending on test)
-    const unsigned kHard = patch_size;
-    const unsigned kWien = patch_size;
 
     //! Check memory allocation
     img_basic.resize(img_noisy.size());
@@ -80,6 +81,7 @@ int main(int argc, char **argv) {
 
     makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
 
+    //print_vector("img_sym_noisy",img_sym_noisy, (int)widthBoundary, (int)heightBoundary);
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";

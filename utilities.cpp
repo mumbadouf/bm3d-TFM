@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <iomanip>
 
 #include "utilities.h"
 
@@ -106,8 +107,9 @@ int save_image(char *name, std::vector<float> &img, const unsigned width, const 
 
 /**
  *
- * @brief Add boundaries by symetry
- *
+ * @brief Add boundaries by symmetry
+ *      The size of the boundaries is nHard
+ *      copies the fisrt nhard lines to the top, the last nhard lines to the bottom, then left and right
  * @param img : image to makeSymmetrical
  * @param img_sym : will contain img with symetrized boundaries
  * @param width, height : size of img
@@ -187,6 +189,40 @@ void ind_initialize(vector<unsigned> &ind_set, const unsigned max_size, const un
     if (ind_set.back() < max_size - nHard - 1)
         ind_set.push_back(max_size - nHard - 1);
 }
+
+void print_vector(std::string const &msg, vector<float> const &vec, int width, int height) {
+    cout << msg << endl;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; ++j) {
+            cout << std::setfill('0') << std::setw(3) << vec[i * width + j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void print_vector(std::string const &msg, vector<unsigned> const &vec, int width, int height) {
+    cout << msg << endl;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; ++j) {
+            cout << std::setfill('0') << std::setw(3)<< vec[i * width + j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void print_vector(std::string const &msg, vector<unsigned> const &vec, int width, int height, int depth) {
+    cout << msg << endl;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; ++j) {
+            for (int k = 0; k < depth; ++k) {
+                cout << std::setfill('0') << std::setw(3) << vec[i * width + j*depth +k] << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+}
+
  
  
  
