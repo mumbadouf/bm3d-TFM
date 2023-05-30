@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(da3d)
+project(bm3d)
 
 # The build type "Release" adds some optimizations
 if (NOT CMAKE_BUILD_TYPE)
@@ -24,7 +24,9 @@ if (CMAKE_VERSION VERSION_LESS "3.1")
 else ()
   set (CMAKE_C_STANDARD 99)
 endif ()
-
+# Add MPI Package to Project
+find_package(MPI REQUIRED)
+link_libraries(MPI::MPI_CXX)
 # Enable OpenMP
  find_package (OpenMP)
  if(OPENMP_FOUND)
@@ -40,6 +42,7 @@ find_package (PNG REQUIRED)
 
 include_directories (PUBLIC ${EIGEN3_INCLUDE_DIR} PUBLIC ${TIFF_INCLUDE_DIR} PUBLIC ${JPEG_INCLUDE_DIR} PUBLIC ${PNG_INCLUDE_DIRS} PUBLIC ${ALGLIB_INCLUDE_DIR} )
 link_libraries (${TIFF_LIBRARIES} ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
+
 
 set(SOURCE_FILES
     bm3d.cpp           iio.c              lib_transforms.h   utilities.h
