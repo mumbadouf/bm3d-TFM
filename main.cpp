@@ -43,13 +43,13 @@ int main(int argc, char **argv) {
     //! Variables initialization
     const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
     //! Parameters
-     unsigned nHard = 16;//16; //! Half ranks of the search window
-     unsigned nWien = 16;//16; //! Half ranks of the search window
+    unsigned nHard = 16;//16; //! Half ranks of the search window
+    unsigned nWien = 16;//16; //! Half ranks of the search window
     const unsigned pHard = 3;
     const unsigned pWien = 3;
-    const int patch_size = 8;
-    const unsigned kHard = patch_size;
-    const unsigned kWien = patch_size;
+    int patch_size = 8;
+    unsigned kHard = patch_size;
+    unsigned kWien = patch_size;
     double start, end;
     //! Check if there is the right call for the algorithm
     if (argc < 4) {
@@ -58,20 +58,24 @@ int main(int argc, char **argv) {
     }
     float sigma = strtof(argv[2], nullptr);
     vector<float> img_sym_noisy, img_sym_basic, img_sym_denoised;
+    vector<float> my_img_sym_noisy, my_img_sym_basic, my_img_sym_denoised;
     //! Add boundaries and make them Symmetrical
     unsigned heightBoundary;
     unsigned widthBoundary;
     //! Declarations
     vector<float> img_noisy, img_basic, img_denoised;
     unsigned width, height;
-    int testing = 0;
+    int testing = 1;
     //! Load image
     if (my_rank == 0) {
         if (testing == 0) {
             width = 10;
             height = 10;
-             nHard = 4;//16; //! Half ranks of the search window
-             nWien = 4;//16; //! Half ranks of the search window
+            nHard = 4;//16; //! Half ranks of the search window
+            nWien = 4;//16; //! Half ranks of the search window
+            patch_size = 3;
+            kHard = patch_size;
+            kWien = patch_size;
             img_noisy.resize(width * height);
             for (int i = 0; i < (int) height; i++)
                 for (int j = 0; j < (int) width; j++)
@@ -82,6 +86,7 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
         }
         //  print_vector("img_noisy:",img_noisy, (int)width, (int)height);
+
         start = MPI_Wtime();
         /*------------------------------------------------------------*/
         //! Denoising
@@ -93,27 +98,43 @@ int main(int argc, char **argv) {
         //! Add boundaries and make them Symmetrical
         heightBoundary = height + 2 * nHard;
         widthBoundary = width + 2 * nHard;
-
-
         makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
-//    for (unsigned i = 0; i < heightBoundary; i++){
-//        for (unsigned j = 0; j < widthBoundary; ++j) {
-//            cout << i * widthBoundary + j<< " ";
-//        }
-//        cout << endl;
-//    }
+
+
     }
     MPI_Bcast(&heightBoundary, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     MPI_Bcast(&widthBoundary, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    if (my_rank != 0) {
-        img_sym_noisy.resize(heightBoundary * widthBoundary);
+    unsigned local_rows = (heightBoundary - (2 * nHard)) / ranks;
+    //unsigned local_start, local_end;
+//    if (my_rank == 0) {
+//        local_start = nHard;
+//        local_end = (local_rows) + nHard;
+//    } else {
+//        local_start = (my_rank * local_rows) + nHard;
+//        local_end = (my_rank + 1) * (local_rows) + nHard;
+//    }
+//    if (my_rank == ranks - 1) {
+//        local_end = height - nHard;
+//    }
+    vector<int> counts(ranks, int((local_rows+nHard) * widthBoundary));
+    vector<int> displs(ranks);
+    counts[ranks - 1] += int(((heightBoundary - (2 * nHard)) % ranks) * widthBoundary);
+
+    displs[0] = int(nHard * widthBoundary);
+    for (int rank = 1; rank < ranks; rank++) {
+        displs[rank] = displs[rank - 1] + counts[rank - 1];
     }
-    MPI_Bcast(&img_sym_noisy[0], int(heightBoundary * widthBoundary), MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+    my_img_sym_noisy.resize((local_rows+nHard) * widthBoundary);
+
+    MPI_Scatterv(&img_sym_noisy[displs[0]], &counts[0], &displs[0], MPI_FLOAT, &my_img_sym_noisy[0],
+                 counts[my_rank], MPI_FLOAT, 0, MPI_COMM_WORLD);
+   // MPI_Bcast(&img_sym_noisy[0], int(heightBoundary * widthBoundary), MPI_FLOAT, 0, MPI_COMM_WORLD);
     //print_vector("img_sym_noisy",img_sym_noisy, (int)widthBoundary, (int)heightBoundary);
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";
-    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard);
+    bm3d_1st_step(sigma, my_img_sym_noisy, my_img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard,ranks,my_rank,int(local_rows+nHard));
     if (verbose)
         cout << "is done." << endl;
 
@@ -137,7 +158,7 @@ int main(int argc, char **argv) {
     if (verbose)
         cout << "BM3D 2nd step...";
     bm3d_2nd_step(sigma, img_sym_noisy, img_sym_basic, img_sym_denoised, widthBoundary, heightBoundary, nWien, kWien,
-                  pWien);
+                  pWien,ranks,my_rank,int(local_rows+nHard));
     if (verbose)
         cout << "is done." << endl;
     if (my_rank == 0) {

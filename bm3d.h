@@ -12,6 +12,9 @@ void bm3d_1st_step(
 ,    unsigned nHard
 ,    unsigned kHard
 ,    unsigned pHard
+,    int ranks
+,    int my_rank
+,    int local_rows
 );
 
 //! 2nd step of BM3D
@@ -25,6 +28,9 @@ void bm3d_2nd_step(
 ,    unsigned nWien
 ,    unsigned kWien
 ,    unsigned pWien
+,    int ranks
+,    int my_rank
+,    int local_rows
 );
 
 //! Process 2D bior1.5 transform of a group of patches
@@ -93,6 +99,9 @@ void precompute_BM(
 ,    unsigned nHard
 ,    unsigned pHard
 ,    float    tauMatch
+,    int ranks
+,    int my_rank
+,    int local_rows
 );
 
 #endif // BM3D_H_INCLUDED

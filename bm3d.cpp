@@ -58,7 +58,8 @@ bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
  * @return none.
  **/
 void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
-                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard) {
+                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard,
+                   const int ranks, const int my_rank, const int local_rows) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
@@ -96,20 +97,19 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     preProcess(kaiser_window, coef_norm, coef_norm_inv, kHard);
     bior15_coef(lpd, hpd, lpr, hpr);
     //! Precompute Bloc-Matching
-    vector<vector<unsigned>> patch_table;
+    vector<vector<unsigned>> my_patch_table;
     //  MPI STARTS HERE
-    precompute_BM(patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch);
-    int my_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    precompute_BM(my_patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch, ranks, my_rank, local_rows);
 
     //! table_2D[p * N + q + (i * width + j) * kHard_squared + c * (2 * nHard + 1) * width * kHard_squared]
     vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
-        const unsigned i_r = row_ind[ind_i];
+        const unsigned row_index = row_ind[ind_i];
 
         //! Update of table_2D
-        bior_2d_process(table_2D, img_noisy, nHard, width, kHard, i_r, pHard, row_ind[0], row_ind.back(), lpd, hpd);
+        bior_2d_process(table_2D, img_noisy, nHard, width, kHard, row_index, pHard, row_ind[0], row_ind.back(), lpd,
+                        hpd);
 
         wx_r_table.clear();
         group_3D_table.clear();
@@ -117,17 +117,17 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         //! Loop on j_r
         for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
             //! Initialization
-            const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
+            const unsigned col_index = column_ind[ind_j];
+            const unsigned k_r = row_index * width + col_index;
 
             //! Number of similar patches
-            const unsigned nSx_r = patch_table[k_r].size();
+            const unsigned nSx_r = my_patch_table[k_r].size();
 
             //! Build of the 3D group
             vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
 
             for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned ind = patch_table[k_r][n] + (nHard - i_r) * width;
+                const unsigned ind = my_patch_table[k_r][n] + (nHard - row_index) * width;
                 for (unsigned k = 0; k < kHard_squared; k++)
                     group_3D[n + k * nSx_r + 0] = table_2D[k + ind * kHard_squared + 0];
             }
@@ -155,11 +155,11 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         unsigned dec = 0;
         for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
             const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
-            const unsigned nSx_r = patch_table[k_r].size();
+            const unsigned k_r = row_index * width + j_r;
+            const unsigned nSx_r = my_patch_table[k_r].size();
 
             for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned k = patch_table[k_r][n] + 0;
+                const unsigned k = my_patch_table[k_r][n] + 0;
                 for (unsigned p = 0; p < kHard; p++)
                     for (unsigned q = 0; q < kHard; q++) {
                         const unsigned ind = k + p * width + q;
@@ -199,7 +199,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
  **/
 void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic,
                    vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned nWien,
-                   const unsigned kWien, const unsigned pWien) {
+                   const unsigned kWien, const unsigned pWien, int ranks, int my_rank, int local_rows) {
     //! Parameters initialization
     const float tauMatch = (sigma < 35.0f ? 400.f
                                           : 3500.f); //! threshold used to determinate similarity between patches
@@ -231,7 +231,7 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> patch_table;
-    precompute_BM(patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch);
+    precompute_BM(patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch, ranks, my_rank, local_rows);
 
     //! Preprocessing of Bior table
     vector<float> lpd, hpd, lpr, hpr;
@@ -562,48 +562,46 @@ preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> 
  **/
 void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &img, const unsigned width,
                    const unsigned height, const unsigned patch_size, const unsigned nHard, const unsigned pHard,
-                   const float tauMatch) {
-    int my_rank, ranks;
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+                   const float tauMatch, int ranks, int my_rank, int local_rows) {
+
     //! Declarations
     //nHard= 16;pHard= 3;patch_size= 8;
     const unsigned Ns = 2 * nHard + 1;
     const float threshold = tauMatch * (float) (patch_size * patch_size);
-    vector<float> diff_table;//same size as img
+    //vector<float> diff_table;//same size as img
     vector<float> diff_table_local;//same size as img
-    if (my_rank == 0) {
-        diff_table.resize(width * height);
-    }
-    vector<vector<float>> sum_table((nHard + 1) * Ns, vector<float>(width * height, 2 * threshold));
-    //sum_table (17*33),img size
-    if (patch_table.size() != width * height)
-        patch_table.resize(width * height);
+
+//    vector<vector<float>> sum_table((nHard + 1) * Ns, vector<float>(width * height, 2 * threshold));
+    vector<vector<float>> sum_table_local;
     vector<unsigned> row_ind;
     vector<unsigned> column_ind;
-    unsigned local_rows = (height - (2 * nHard)) / ranks;
-    unsigned local_start;
-    unsigned local_end;
+    unsigned my_min;
+    unsigned my_max;
     diff_table_local.resize(local_rows * width);
+    sum_table_local.resize((nHard + 1) * Ns, vector<float>((local_rows + nHard) * width, 2 * threshold));
+    patch_table.resize(width * local_rows);
 
     if (my_rank == 0) {
-        local_start = nHard;
-        local_end = (local_rows) + nHard;
+        my_min = nHard;
+        my_max = (local_rows - nHard) + nHard;
     } else {
-        local_start = (my_rank * local_rows) + nHard;
-        local_end = (my_rank + 1) * (local_rows) + nHard;
+        my_min = (my_rank * (local_rows - nHard)) + nHard;
+        my_max = (my_rank + 1) * (local_rows - nHard) + nHard;
     }
     if (my_rank == ranks - 1) {
-        local_end = height - nHard;
+        my_max = height - nHard;
     }
-    vector<int> counts(ranks, int(local_rows * width));
-    vector<int> displs(ranks);
-    counts[ranks - 1] += int(((height - (2 * nHard)) % ranks) * width);
-
-    displs[0] = int(nHard * width);
-    for (int rank = 1; rank < ranks; rank++) {
-        displs[rank] = displs[rank - 1] + counts[rank - 1];
-    }
+//    vector<int> counts(ranks, int(local_rows * width));
+//    vector<int> displs(ranks);
+//    counts[ranks - 1] += int(((height - (2 * nHard)) % ranks) * width);
+//
+//    displs[0] = int(nHard * width);
+//    for (int rank = 1; rank < ranks; rank++) {
+//        displs[rank] = displs[rank - 1] + counts[rank - 1];
+//    }
+    //! testing values
+    // my_min = 3 + nHard;
+    //my_max = 5 + nHard;
     //! For each possible distance, precompute inter-patches distance
     for (unsigned i_nHard = 0; i_nHard <= nHard; i_nHard++) { //0 to 16 inclusive
         for (unsigned dj = 0; dj < Ns; dj++) { //0 to 33(exclusive)
@@ -611,71 +609,127 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             const unsigned ddk = i_nHard * Ns + dj;
 
             //! Process the image containing the square distance between pixels
-            for (unsigned row = local_start; row < local_end; row++) {
+            for (unsigned row = nHard; row < local_rows - nHard; row++) {
                 //for (unsigned row = nHard; row < height-nHard; row++) {
                 unsigned k = row * width + nHard;// original img staring index
-                unsigned local_k = nHard + (row - local_start) * width;
-                for (unsigned col = nHard; col < width - nHard; col++, k++, local_k++) {
-                    diff_table_local[local_k] = (img[k + dk] - img[k]) * (img[k + dk] - img[k]);
+                for (unsigned col = nHard; col < width - nHard; col++, k++) {
+                    diff_table_local[k] = (img[k + dk] - img[k]) * (img[k + dk] - img[k]);
                 }
             }
-            //allGather diff_table
-            //cout << "diff_table_local size: " << diff_table_local.size() << endl;
-            MPI_Gatherv(&diff_table_local[0], int(local_rows * width), MPI_FLOAT, &diff_table[0], &counts[0],
-                        &displs[0], MPI_FLOAT, 0, MPI_COMM_WORLD);
-            // MPI_Bcast(&diff_table[0], int(width * height), MPI_FLOAT, 0, MPI_COMM_WORLD);
+
             //! Compute the sum for each patches, using the method of the integral images
-            //! can not use parallel here each cell depends on the previous one
-            if (my_rank == 0) {
-                const unsigned dn = nHard * width + nHard;//original img staring index
-                //! 1st patch, top left corner
-                float value = 0.0f;
-                // reads the first 8x8 cells of the diff_table
-                for (unsigned row = 0; row < patch_size; row++) {
-                    unsigned pq = row * width + dn;
-                    for (unsigned col = 0; col < patch_size; col++, pq++)
-                        value += diff_table[pq];
+            //each rank sends nHard row to rank-1
+            // odd ranks send first and even receive first
+            if (ranks > 1) {
+                if ((my_rank % 2) == 1) {
+                    MPI_Send(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+                } else if(my_rank != ranks - 1){
+                    MPI_Recv(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank + 1, 0,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
-                sum_table[ddk][dn] = value;
-
-                //! 1st row, top
-                for (unsigned col = nHard; col < width - nHard; col++) {
-                    const unsigned ind = nHard * width + col;//original img staring index
-                    float sum = sum_table[ddk][ind];
-                    for (unsigned patch_row = 0; patch_row < patch_size; patch_row++) {
-                        sum += diff_table[ind + patch_row * width + patch_size] - diff_table[ind + patch_row * width];
-                    }
-                    sum_table[ddk][ind + 1] = sum;
-                }
-
-                //! General case
-                for (unsigned row = nHard + 1; row < height - nHard; row++) {
-                    const unsigned ind = (row - 1) * width + nHard;//original img start
-                    float sum = sum_table[ddk][ind];
-                    //! 1st column, left
-                    for (unsigned q = 0; q < patch_size; q++) {
-                        sum += diff_table[ind + patch_size * width + q] - diff_table[ind + q];
-                    }
-                    sum_table[ddk][ind + width] = sum;
-
-                    //! Other columns
-                    unsigned k = row * width + nHard + 1;//img original index
-                    unsigned pq = (row + patch_size - 1) * width + patch_size + nHard;
-                    for (unsigned j = nHard + 1; j < width - nHard; j++, k++, pq++) {
-                        sum_table[ddk][k] =
-                                sum_table[ddk][k - 1] + sum_table[ddk][k - width] - sum_table[ddk][k - 1 - width] +
-                                diff_table[pq] - diff_table[pq - patch_size] - diff_table[pq - patch_size * width] +
-                                diff_table[pq - patch_size - patch_size * width];
-                    }
+                //even ranks send (except root) and odd receive (except last)
+                if ((my_rank % 2) == 0 && my_rank != 0) {
+                    MPI_Send(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+                } else if (my_rank != 0 && my_rank != ranks - 1) {
+                    MPI_Recv(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank + 1, 0,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
             }
+
+            //! 1st patch, top left corner
+            float value = 0.0f;
+            // reads the first 8x8 cells of the diff_table
+            for (unsigned row = 0; row < patch_size; row++) {
+                unsigned pq = row * width + nHard;
+                for (unsigned col = 0; col < patch_size; col++, pq++)
+                    value += diff_table_local[pq];
+            }
+            sum_table_local[ddk][nHard] = value;
+
+            //! 1st row, top
+            for (unsigned col = nHard; col < width - nHard; col++) {
+                const unsigned ind = nHard * width + col;//original img staring index
+                float sum = sum_table_local[ddk][ind];
+                for (unsigned patch_row = 0; patch_row < patch_size; patch_row++) {
+                    sum += diff_table_local[ind + patch_row * width + patch_size] -
+                           diff_table_local[ind + patch_row * width];
+                }
+                sum_table_local[ddk][ind + 1] = sum;
+            }
+
+            //! General case
+            for (unsigned row = nHard + 1; row < local_rows - nHard; row++) {
+                const unsigned ind = (row - 1) * width + nHard;//original img start
+                float sum = sum_table_local[ddk][ind];
+                //! 1st column, left
+                for (unsigned q = 0; q < patch_size; q++) {
+                    sum += diff_table_local[ind + patch_size * width + q] - diff_table_local[ind + q];
+                }
+                sum_table_local[ddk][ind + width] = sum;
+
+                //! Other columns
+                unsigned k = row * width + nHard + 1;//img original index
+                unsigned pq = (row + patch_size - 1) * width + patch_size + nHard;
+                for (unsigned j = nHard + 1; j < width - nHard; j++, k++, pq++) {
+                    unsigned i1 = pq - patch_size;
+                    unsigned i2 = pq - patch_size * width;
+                    unsigned i3 = pq - patch_size - patch_size * width;
+                    sum_table_local[ddk][k] = sum_table_local[ddk][k - 1] + sum_table_local[ddk][k - width] -
+                                              sum_table_local[ddk][k - 1 - width] + diff_table_local[pq] -
+                                              diff_table_local[i1] - diff_table_local[i2] + diff_table_local[i3];
+                }
+            }
+            // share the sum_table_local
+            if (ranks > 1) {
+                // share sum_table each cpu send/send to nHard rows to the previous and next cpu
+                if (my_rank == 0) {
+                    MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT,
+                             my_rank + 1, 0, MPI_COMM_WORLD);
+                    MPI_Recv(&sum_table_local[ddk][local_rows - (nHard)], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                } else if (my_rank == ranks - 1 && ranks % 2 == 0) {
+                    MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+                    MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+                } else if (my_rank == ranks - 1 && ranks % 2 == 1) {
+                    MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+                    MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+                } else if (my_rank % 2 == 1) {
+                    MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+                    MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+
+                    MPI_Recv(&sum_table_local[ddk][local_rows - nHard], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT,
+                             my_rank + 1, 0, MPI_COMM_WORLD);
+                } else {
+                    MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0,
+                             MPI_COMM_WORLD);
+                    MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+
+                    MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT,
+                             my_rank + 1, 0, MPI_COMM_WORLD);
+                    MPI_Recv(&sum_table_local[ddk][local_rows - nHard], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+            }
+
         }
     }
     diff_table_local.clear();
-    diff_table.clear();
-    for(int i = 0; i < int ((nHard + 1) * Ns) ; i++){
-        MPI_Bcast(&sum_table[i][0], int(width * height), MPI_FLOAT, 0, MPI_COMM_WORLD);
-    }
+    diff_table_local.clear();
+//    for(int i = 0; i < int ((nHard + 1) * Ns) ; i++){
+//        MPI_Bcast(&sum_table[i][0], int(width * height), MPI_FLOAT, 0, MPI_COMM_WORLD);
+//    }
 
     //cout << "sum_table size: " << sum_table.size() << endl;
     ind_initialize(row_ind, height - patch_size + 1, nHard, pHard);
@@ -685,76 +739,71 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
     //! To avoid reallocation
     table_distance.reserve(Ns * Ns);
 
-    local_rows = row_ind.size() / ranks;
+    // local end and start for each process must be in range in respect to global height
+    // my rows
 
-    if (my_rank == 0) {
-        local_start = 0;
-        local_end = local_rows;
-    } else {
-        local_start = my_rank * local_rows;
-        local_end = (my_rank + 1) * local_rows;
-    }
-    if (my_rank == ranks - 1) {
-        local_end = row_ind.size();
-    }
+    // vector<vector<unsigned>> patch_table_local(local_rows * width);
 
-    vector<vector<unsigned>> patch_table_local(local_rows * width);
-    cout << "local_start: " << local_start << " local_end: " << local_end << endl;
-    for (unsigned ind_i = local_start; ind_i < local_end; ind_i++) {
-        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
-            //! Initialization
-            const unsigned k_r = row_ind[ind_i] * width + column_ind[ind_j];
-            const unsigned k_r_local = (ind_i - local_start) * width + column_ind[ind_j];
+    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+        // only work if row_ind is in range of local rows of the process
+        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                //! Initialization
+                const unsigned k_r = (row_ind[ind_i] - (my_min)+nHard) * width + column_ind[ind_j];
+                //const unsigned k_r_local = (ind_i - my_min) * width + column_ind[ind_j];
 
-            table_distance.clear();
-            patch_table_local[k_r_local].clear();
+                table_distance.clear();
+                patch_table[k_r].clear();
 
-            //! Threshold distances in order to keep similar patches
-            for (int dj = -(int) nHard; dj <= (int) nHard; dj++) {
-                for (int di = 0; di <= (int) nHard; di++)
-                    if (sum_table[dj + nHard + di * Ns][k_r] < threshold)
-                        table_distance.push_back(
-                                make_pair(sum_table[dj + nHard + di * Ns][k_r], k_r + di * width + dj));
+                //! Threshold distances in order to keep similar patches
+                for (int dj = -(int) nHard; dj <= (int) nHard; dj++) {
+                    for (int di = 0; di <= (int) nHard; di++)
+                        if (sum_table_local[dj + nHard + di * Ns][k_r] < threshold)
+                            table_distance.push_back(
+                                    make_pair(sum_table_local[dj + nHard + di * Ns][k_r], k_r + di * width + dj));
 
-                for (int di = -(int) nHard; di < 0; di++)
-                    if (sum_table[-dj + nHard + (-di) * Ns][k_r + di * width + dj] < threshold)
-                        table_distance.push_back(make_pair(sum_table[-dj + nHard + (-di) * Ns][k_r + di * width + dj],
-                                                           k_r + di * width + dj));
+                    for (int di = -(int) nHard; di < 0; di++)
+                        if (sum_table_local[-dj + nHard + (-di) * Ns][k_r + di * width + dj] < threshold)
+                            table_distance.push_back(
+                                    make_pair(sum_table_local[-dj + nHard + (-di) * Ns][k_r + di * width + dj],
+                                              k_r + di * width + dj));
+                }
+
+                //! We need a power of 2 for the number of similar patches,
+                //! because of the Welsh-Hadamard transform on the third dimension.
+                //! We assume that nHard is already a power of 2
+                const unsigned nSx_r = (nHard > table_distance.size() ? closest_power_of_2(table_distance.size())
+                                                                      : nHard);
+
+                //! To avoid problem
+                if (nSx_r == 1 && table_distance.empty()) {
+                    table_distance.push_back(make_pair(0, k_r));
+                }
+
+                //! Sort patches according to their distance to the reference one
+                partial_sort(table_distance.begin(), table_distance.begin() + nSx_r, table_distance.end(),
+                             compareFirst);
+
+                //! Keep a maximum of nHard similar patches
+                for (unsigned n = 0; n < nSx_r; n++)
+                    patch_table[k_r].push_back(table_distance[n].second);
             }
-
-            //! We need a power of 2 for the number of similar patches,
-            //! because of the Welsh-Hadamard transform on the third dimension.
-            //! We assume that nHard is already a power of 2
-            const unsigned nSx_r = (nHard > table_distance.size() ? closest_power_of_2(table_distance.size()) : nHard);
-
-            //! To avoid problem
-            if (nSx_r == 1 && table_distance.empty()) {
-                table_distance.push_back(make_pair(0, k_r));
-            }
-
-            //! Sort patches according to their distance to the reference one
-            partial_sort(table_distance.begin(), table_distance.begin() + nSx_r, table_distance.end(), compareFirst);
-
-            //! Keep a maximum of nHard similar patches
-            for (unsigned n = 0; n < nSx_r; n++)
-                patch_table_local[k_r_local].push_back(table_distance[n].second);
-
         }
     }
     cout << "rank " << my_rank << " finished patch_table" << endl;
-    if (my_rank == 0) {
-        counts[0] = int(patch_table_local.size());
-        displs[0] = int(nHard * width);
-        for (int rank = 1; rank < ranks; rank++) {
-            MPI_Recv(&counts[rank], 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-        }
-    } else {
-        int size = int(patch_table_local.size());
-        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    }
-
-    MPI_Gatherv(patch_table_local.data(), int(patch_table_local.size()), MPI_UNSIGNED, patch_table.data(), &counts[0],
-                &displs[0], MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+//    if (my_rank == 0) {
+//        counts[0] = int(patch_table_local.size());
+//        displs[0] = int(nHard * width);
+//        for (int rank = 1; rank < ranks; rank++) {
+//            MPI_Recv(&counts[rank], 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//            displs[rank] = displs[rank - 1] + counts[rank - 1];
+//        }
+//    } else {
+//        int size = int(patch_table_local.size());
+//        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+//    }
+//
+//    MPI_Gatherv(patch_table_local.data(), int(patch_table_local.size()), MPI_UNSIGNED, patch_table.data(), &counts[0],
+//                &displs[0], MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     //gather patch_table
 }
