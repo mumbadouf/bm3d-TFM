@@ -43,13 +43,13 @@ int main(int argc, char **argv) {
     //! Variables initialization
     const bool verbose = pick_option(&argc, argv, "verbose", nullptr) != nullptr;
     //! Parameters
-     unsigned nHard = 16;//16; //! Half ranks of the search window
-     unsigned nWien = 16;//16; //! Half ranks of the search window
+    unsigned nHard = 16;//16; //! Half ranks of the search window
+    unsigned nWien = 16;//16; //! Half ranks of the search window
     const unsigned pHard = 3;
     const unsigned pWien = 3;
-     int patch_size = 8;
-     unsigned kHard = patch_size;
-     unsigned kWien = patch_size;
+    int patch_size = 8;
+    unsigned kHard = patch_size;
+    unsigned kWien = patch_size;
     double start, end;
     //! Check if there is the right call for the algorithm
     if (argc < 4) {
@@ -66,52 +66,44 @@ int main(int argc, char **argv) {
     unsigned width, height;
     int testing = 1;
     //! Load image
-    if (my_rank == 0) {
-        if (testing == 0) {
-            width = 10;
-            height = 10;
-             nHard = 4;//16; //! Half ranks of the search window
-             nWien = 4;//16; //! Half ranks of the search window
-             patch_size = 3;
-             kHard = patch_size;
-              kWien = patch_size;
-            img_noisy.resize(width * height);
-            for (int i = 0; i < (int) height; i++)
-                for (int j = 0; j < (int) width; j++)
-                    img_noisy[i * width + j] = (float) (i * width + j);
-        } else {
+    if (testing == 0) {
+        width = 10;
+        height = 10;
+        nHard = 4;//16; //! Half ranks of the search window
+        nWien = 4;//16; //! Half ranks of the search window
+        patch_size = 3;
+        kHard = patch_size;
+        kWien = patch_size;
+        img_noisy.resize(width * height);
+        for (int i = 0; i < (int) height; i++)
+            for (int j = 0; j < (int) width; j++)
+                img_noisy[i * width + j] = (float) (i * width + j);
+    } else {
 
-            if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
-                return EXIT_FAILURE;
-        }
-        //  print_vector("img_noisy:",img_noisy, (int)width, (int)height);
-        start = MPI_Wtime();
-        /*------------------------------------------------------------*/
-        //! Denoising
+        if (load_image(argv[1], img_noisy, &width, &height) != EXIT_SUCCESS)
+            return EXIT_FAILURE;
+    }
+    //  print_vector("img_noisy:",img_noisy, (int)width, (int)height);
+    //start = MPI_Wtime();
+    /*------------------------------------------------------------*/
+    //! Denoising
 
-        //! Check memory allocation
-        img_basic.resize(img_noisy.size());
-        img_denoised.resize(img_noisy.size());
+    //! Check memory allocation
+    img_basic.resize(img_noisy.size());
+    img_denoised.resize(img_noisy.size());
 
-        //! Add boundaries and make them Symmetrical
-        heightBoundary = height + 2 * nHard;
-        widthBoundary = width + 2 * nHard;
+    //! Add boundaries and make them Symmetrical
+    heightBoundary = height + 2 * nHard;
+    widthBoundary = width + 2 * nHard;
 
 
-        makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
+    makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
 //    for (unsigned i = 0; i < heightBoundary; i++){
 //        for (unsigned j = 0; j < widthBoundary; ++j) {
 //            cout << i * widthBoundary + j<< " ";
 //        }
 //        cout << endl;
 //    }
-    }
-    MPI_Bcast(&heightBoundary, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&widthBoundary, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    if (my_rank != 0) {
-        img_sym_noisy.resize(heightBoundary * widthBoundary);
-    }
-    MPI_Bcast(&img_sym_noisy[0], int(heightBoundary * widthBoundary), MPI_FLOAT, 0, MPI_COMM_WORLD);
     //print_vector("img_sym_noisy",img_sym_noisy, (int)widthBoundary, (int)heightBoundary);
     //! Denoising, 1st Step
     if (verbose)
@@ -132,10 +124,6 @@ int main(int argc, char **argv) {
         makeSymmetrical(img_basic, img_sym_basic, width, height, nHard);
 
     }
-    if (my_rank != 0) {
-        img_sym_basic.resize(heightBoundary * widthBoundary);
-    }
-    MPI_Bcast(&img_sym_basic[0], int(heightBoundary * widthBoundary), MPI_FLOAT, 0, MPI_COMM_WORLD);
     //! Denoising, 2nd Step
     if (verbose)
         cout << "BM3D 2nd step...";
@@ -143,30 +131,29 @@ int main(int argc, char **argv) {
                   pWien);
     if (verbose)
         cout << "is done." << endl;
-    if (my_rank == 0) {
 
-        //! Obtention of img_denoised
-        //copy img_sym_denoised center (without boundaries)
-        dc_b = nWien * widthBoundary + nWien;
-        dc = 0;
-        for (unsigned i = 0; i < height; i++)
-            for (unsigned j = 0; j < width; j++, dc++)
-                img_denoised[dc] = img_sym_denoised[dc_b + i * widthBoundary + j];
-        /*------------------------------------------------------------*/
-        end = MPI_Wtime();
-        cout << "Time: " << end - start << "s" << endl;
+    //! Obtention of img_denoised
+    //copy img_sym_denoised center (without boundaries)
+    dc_b = nWien * widthBoundary + nWien;
+    dc = 0;
+    for (unsigned i = 0; i < height; i++)
+        for (unsigned j = 0; j < width; j++, dc++)
+            img_denoised[dc] = img_sym_denoised[dc_b + i * widthBoundary + j];
+    /*------------------------------------------------------------*/
+   // end = MPI_Wtime();
+   // cout << "Time: " << end - start << "s" << endl;
 
-        //! save noisy, denoised and differences images
-        cout << endl << "Save images...";
-        char r[10];
-        std::sprintf(r, "_%d.png", my_rank);
-        //std::sprintf(r, "_%d.png", 0);
+    //! save noisy, denoised and differences images
+    cout << endl << "Save images...";
+    char r[10];
+    std::sprintf(r, "_%d.png", my_rank);
+    //std::sprintf(r, "_%d.png", 0);
 
-        if (save_image(strcat(argv[3], r), img_denoised, width, height) != EXIT_SUCCESS)
-            return EXIT_FAILURE;
+    if (save_image(strcat(argv[3], r), img_denoised, width, height) != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
-        cout << "done." << endl;
-    }
+    cout << "done." << endl;
+
     MPI_Finalize();
     return EXIT_SUCCESS;
 }
