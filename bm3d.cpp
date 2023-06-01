@@ -698,16 +698,16 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
         local_end = row_ind.size();
     }
 
-    vector<vector<unsigned>> patch_table_local(local_rows * width);
+    //vector<vector<unsigned>> patch_table_local(local_rows * width);
     cout << "local_start: " << local_start << " local_end: " << local_end << endl;
     for (unsigned ind_i = local_start; ind_i < local_end; ind_i++) {
         for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
             //! Initialization
             const unsigned k_r = row_ind[ind_i] * width + column_ind[ind_j];
-            const unsigned k_r_local = (ind_i - local_start) * width + column_ind[ind_j];
+           // const unsigned k_r_local = (ind_i - local_start) * width + column_ind[ind_j];
 
             table_distance.clear();
-            patch_table_local[k_r_local].clear();
+            patch_table[k_r].clear();
 
             //! Threshold distances in order to keep similar patches
             for (int dj = -(int) nHard; dj <= (int) nHard; dj++) {
@@ -737,24 +737,9 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
 
             //! Keep a maximum of nHard similar patches
             for (unsigned n = 0; n < nSx_r; n++)
-                patch_table_local[k_r_local].push_back(table_distance[n].second);
-
+                patch_table[k_r].push_back(table_distance[n].second);
         }
     }
-    cout << "rank " << my_rank << " finished patch_table" << endl;
-    if (my_rank == 0) {
-        counts[0] = int(patch_table_local.size());
-        displs[0] = int(nHard * width);
-        for (int rank = 1; rank < ranks; rank++) {
-            MPI_Recv(&counts[rank], 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            displs[rank] = displs[rank - 1] + counts[rank - 1];
-        }
-    } else {
-        int size = int(patch_table_local.size());
-        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    }
 
-    MPI_Gatherv(patch_table_local.data(), int(patch_table_local.size()), MPI_UNSIGNED, patch_table.data(), &counts[0],
-                &displs[0], MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     //gather patch_table
 }
