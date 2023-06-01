@@ -47,9 +47,9 @@ int main(int argc, char **argv) {
      unsigned nWien = 16;//16; //! Half ranks of the search window
     const unsigned pHard = 3;
     const unsigned pWien = 3;
-    const int patch_size = 8;
-    const unsigned kHard = patch_size;
-    const unsigned kWien = patch_size;
+     int patch_size = 8;
+     unsigned kHard = patch_size;
+     unsigned kWien = patch_size;
     double start, end;
     //! Check if there is the right call for the algorithm
     if (argc < 4) {
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     //! Declarations
     vector<float> img_noisy, img_basic, img_denoised;
     unsigned width, height;
-    int testing = 0;
+    int testing = 1;
     //! Load image
     if (my_rank == 0) {
         if (testing == 0) {
@@ -72,6 +72,9 @@ int main(int argc, char **argv) {
             height = 10;
              nHard = 4;//16; //! Half ranks of the search window
              nWien = 4;//16; //! Half ranks of the search window
+             patch_size = 3;
+             kHard = patch_size;
+              kWien = patch_size;
             img_noisy.resize(width * height);
             for (int i = 0; i < (int) height; i++)
                 for (int j = 0; j < (int) width; j++)
