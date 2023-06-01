@@ -31,11 +31,11 @@ void bm3d_2nd_step(
 void bior_2d_process(
     std::vector<float> &bior_table_2D
 ,   std::vector<float> const &img
-,    unsigned nHW
+,    unsigned nHard
 ,    unsigned width
-,    unsigned kHW
-,    unsigned i_r
-,    unsigned step
+,    unsigned kHard
+,    unsigned i_row
+,    unsigned pHard
 ,    unsigned i_min
 ,    unsigned i_max
 ,   std::vector<float> &lpd

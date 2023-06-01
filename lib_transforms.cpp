@@ -27,36 +27,36 @@ using namespace std;
 /**
  * @brief Compute a full 2D Bior 1.5 spline wavelet (normalized)
  *
- * @param input: vector on which the transform will be applied;
- * @param output: will contain the result;
- * @param N: size of the 2D patch (N x N) on which the 2D transform
+ * @param img: vector on which the transform will be applied;
+ * @param bior_table_2D: will contain the result;
+ * @param kHard: size of the 2D patch (kHard x kHard) on which the 2D transform
  *           is applied. Must be a power of 2;
- * @param d_i: for convenience. Shift for input to access to the patch;
- * @param r_i: for convenience. input(i, j) = input[d_i + i * r_i + j];
- * @param d_o: for convenience. Shift for output;
+ * @param d_i: for convenience. Shift for img to access to the patch;
+ * @param width: for convenience. img(i, j) = img[d_i + i * width + j];
+ * @param d_o: for convenience. Shift for bior_table_2D;
  * @param lpd: low frequencies coefficients for the forward Bior 1.5;
  * @param hpd: high frequencies coefficients for the forward Bior 1.5.
  *
  * @return none.
  **/
 void bior_2d_forward(
-    vector<float> const& input
-,   vector<float> &output
-,   const unsigned N
+    vector<float> const& img
+,   vector<float> &bior_table_2D
+,   const unsigned kHard
 ,   const unsigned d_i
-,   const unsigned r_i
+,   const unsigned width
 ,   const unsigned d_o
 ,   vector<float> const& lpd
 ,   vector<float> const& hpd
 ){
-    //! Initializing output
-    for (unsigned i = 0; i < N; i++)
-        for (unsigned j = 0; j < N; j++)
-            output[i * N + j + d_o] = input[i * r_i + j + d_i];
+    //! Initializing bior_table_2D
+    for (unsigned i = 0; i < kHard; i++)
+        for (unsigned j = 0; j < kHard; j++)
+            bior_table_2D[i * kHard + j + d_o] = img[i * width + j + d_i];
 
-    const unsigned iter_max = log2(N);
-    unsigned N_1 = N;
-    unsigned N_2 = N / 2;
+    const unsigned iter_max = log2(kHard);
+    unsigned N_1 = kHard;
+    unsigned N_2 = kHard / 2;
     const unsigned S_1 = lpd.size();
     const unsigned S_2 = S_1 / 2 - 1;
 
@@ -72,7 +72,7 @@ void bior_2d_forward(
         {
             //! Periodic extension of the signal in row
             for (unsigned j = 0; j < tmp.size(); j++)
-                tmp[j] = output[d_o + i * N + ind_per[j]];
+                tmp[j] = bior_table_2D[d_o + i * kHard + ind_per[j]];
 
             //! Low and High frequencies filtering
             for (unsigned j = 0; j < N_2; j++)
@@ -83,8 +83,8 @@ void bior_2d_forward(
                     v_l += tmp[k + j * 2] * lpd[k];
                     v_h += tmp[k + j * 2] * hpd[k];
                 }
-                output[d_o + i * N + j] = v_l;
-                output[d_o + i * N + j + N_2] = v_h;
+                bior_table_2D[d_o + i * kHard + j] = v_l;
+                bior_table_2D[d_o + i * kHard + j + N_2] = v_h;
             }
         }
 
@@ -93,7 +93,7 @@ void bior_2d_forward(
         {
             //! Periodic extension of the signal in column
             for (unsigned i = 0; i < tmp.size(); i++)
-                tmp[i] = output[d_o + j + ind_per[i] * N];
+                tmp[i] = bior_table_2D[d_o + j + ind_per[i] * kHard];
 
             //! Low and High frequencies filtering
             for (unsigned i = 0; i < N_2; i++)
@@ -104,8 +104,8 @@ void bior_2d_forward(
                     v_l += tmp[k + i * 2] * lpd[k];
                     v_h += tmp[k + i * 2] * hpd[k];
                 }
-                output[d_o + j + i * N] = v_l;
-                output[d_o + j + (i + N_2) * N] = v_h;
+                bior_table_2D[d_o + j + i * kHard] = v_l;
+                bior_table_2D[d_o + j + (i + N_2) * kHard] = v_h;
             }
         }
 

@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
-#include <omp.h>
 
 #include "bm3d.h"
 #include "utilities.h"
@@ -71,8 +70,8 @@ int main(int argc, char **argv) {
         height = 10;
         nHard = 4;//16; //! Half ranks of the search window
         nWien = 4;//16; //! Half ranks of the search window
-        patch_size = 3;
-        kHard = patch_size;
+        patch_size = 4;
+        kHard = patch_size;// must be a power of 2
         kWien = patch_size;
         img_noisy.resize(width * height);
         for (int i = 0; i < (int) height; i++)

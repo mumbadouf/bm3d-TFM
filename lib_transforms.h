@@ -5,11 +5,11 @@
 
 //! Compute a Bior1.5 2D
 void bior_2d_forward(
-    std::vector<float> const& input
-,   std::vector<float> &output
-,    unsigned N
+    std::vector<float> const& img
+,   std::vector<float> &bior_table_2D
+,    unsigned kHard
 ,    unsigned d_i
-,    unsigned r_i
+,    unsigned width
 ,    unsigned d_o
 ,   std::vector<float> const& lpd
 ,   std::vector<float> const& hpd

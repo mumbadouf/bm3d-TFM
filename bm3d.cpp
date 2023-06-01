@@ -104,10 +104,10 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
-        const unsigned i_r = row_ind[ind_i];
+        const unsigned i_row = row_ind[ind_i];
 
         //! Update of table_2D
-        bior_2d_process(table_2D, img_noisy, nHard, width, kHard, i_r, pHard, row_ind[0], row_ind.back(), lpd, hpd);
+        bior_2d_process(table_2D, img_noisy, nHard, width, kHard, i_row, pHard, row_ind[0], row_ind.back(), lpd, hpd);
 
         wx_r_table.clear();
         group_3D_table.clear();
@@ -116,7 +116,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
             //! Initialization
             const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
+            const unsigned k_r = i_row * width + j_r;
 
             //! Number of similar patches
             const unsigned nSx_r = patch_table[k_r].size();
@@ -125,7 +125,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
             vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
 
             for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned ind = patch_table[k_r][n] + (nHard - i_r) * width;
+                const unsigned ind = patch_table[k_r][n] + (nHard - i_row) * width;
                 for (unsigned k = 0; k < kHard_squared; k++)
                     group_3D[n + k * nSx_r + 0] = table_2D[k + ind * kHard_squared + 0];
             }
@@ -153,7 +153,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         unsigned dec = 0;
         for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
             const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
+            const unsigned k_r = i_row * width + j_r;
             const unsigned nSx_r = patch_table[k_r].size();
 
             for (unsigned n = 0; n < nSx_r; n++) {
@@ -325,48 +325,48 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
  * @param bior_table_2D : will contain the 2d bior1.5 transform for all
  *        chosen patches;
  * @param img : image on which the 2d transform will be processed;
- * @param nHW : size of the boundary around img;
+ * @param nHard : size of the boundary around img;
  * @param width, height: size of img;
- * @param kHW : size of patches (kHW x kHW). MUST BE A POWER OF 2 !!!
- * @param i_r: current index of the reference patches;
- * @param step: space in pixels between two references patches;
+ * @param kHard : size of patches (kHard x kHard). MUST BE A POWER OF 2 !!!
+ * @param i_row: current index of the reference patches;
+ * @param pHard: space in pixels between two references patches;
  * @param i_min (resp. i_max) : minimum (resp. maximum) value
- *        for i_r. In this case the whole 2d transform is applied
+ *        for i_row. In this case the whole 2d transform is applied
  *        on every patches. Otherwise the precomputed 2d DCT is re-used
  *        without processing it;
  * @param lpd : low pass filter of the forward bior1.5 2d transform;
  * @param hpd : high pass filter of the forward bior1.5 2d transform.
  **/
-void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, const unsigned nHW, const unsigned width,
-                     const unsigned kHW, const unsigned i_r, const unsigned step, const unsigned i_min,
+void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, const unsigned nHard, const unsigned width,
+                     const unsigned kHard, const unsigned i_row, const unsigned pHard, const unsigned i_min,
                      const unsigned i_max, vector<float> &lpd, vector<float> &hpd) {
     //! Declarations
-    const unsigned kHW_2 = kHW * kHW;
+    const unsigned kHard_squared = kHard * kHard;
 
-    //! If i_r == ns, then we have to process all Bior1.5 transforms
-    if (i_r == i_min || i_r == i_max) {
+    //! If i_row == ns, then we have to process all Bior1.5 transforms
+    if (i_row == i_min || i_row == i_max) {
 
-        for (unsigned i = 0; i < 2 * nHW + 1; i++)
-            for (unsigned j = 0; j < width - kHW; j++) {
-                bior_2d_forward(img, bior_table_2D, kHW, (i_r + i - nHW) * width + j, width, (i * width + j) * kHW_2,
+        for (unsigned i = 0; i < 2 * nHard + 1; i++)
+            for (unsigned j = 0; j < width - kHard; j++) {
+                bior_2d_forward(img, bior_table_2D, kHard, (i_row + i - nHard) * width + j, width, (i * width + j) * kHard_squared,
                                 lpd, hpd);
             }
     } else {
-        const unsigned ds = step * width * kHW_2;
+        const unsigned ds = pHard * width * kHard_squared;
 
         //! Re-use of Bior1.5 already processed
 
-        for (unsigned i = 0; i < 2 * nHW + 1 - step; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-                for (unsigned k = 0; k < kHW_2; k++)
-                    bior_table_2D[k + (i * width + j) * kHW_2] = bior_table_2D[k + (i * width + j) * kHW_2 + ds];
+        for (unsigned i = 0; i < 2 * nHard + 1 - pHard; i++)
+            for (unsigned j = 0; j < width - kHard; j++)
+                for (unsigned k = 0; k < kHard_squared; k++)
+                    bior_table_2D[k + (i * width + j) * kHard_squared] = bior_table_2D[k + (i * width + j) * kHard_squared + ds];
 
         //! Compute the new Bior
 
-        for (unsigned i = 0; i < step; i++)
-            for (unsigned j = 0; j < width - kHW; j++) {
-                bior_2d_forward(img, bior_table_2D, kHW, (i + 2 * nHW + 1 - step + i_r - nHW) * width + j, width,
-                                ((i + 2 * nHW + 1 - step) * width + j) * kHW_2, lpd, hpd);
+        for (unsigned i = 0; i < pHard; i++)
+            for (unsigned j = 0; j < width - kHard; j++) {
+                bior_2d_forward(img, bior_table_2D, kHard, (i + 2 * nHard + 1 - pHard + i_row - nHard) * width + j, width,
+                                ((i + 2 * nHard + 1 - pHard) * width + j) * kHard_squared, lpd, hpd);
             }
     }
 }
