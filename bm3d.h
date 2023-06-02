@@ -5,7 +5,7 @@
 //! 1st step of BM3D
 void bm3d_1st_step(
      float sigma
-,   std::vector<float> const& img_noisy
+,   std::vector<float> &img_noisy
 ,   std::vector<float> &img_basic
 ,    unsigned width
 ,    unsigned height
@@ -15,6 +15,7 @@ void bm3d_1st_step(
 ,    int ranks
 ,    int my_rank
 ,    int local_rows
+,    char **argv
 );
 
 //! 2nd step of BM3D

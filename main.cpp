@@ -134,7 +134,8 @@ int main(int argc, char **argv) {
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";
-    bm3d_1st_step(sigma, my_img_sym_noisy, my_img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard,ranks,my_rank,int(local_rows+nHard));
+    bm3d_1st_step(sigma, my_img_sym_noisy, my_img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard,ranks,my_rank,int(local_rows+nHard),argv);
+    cout << "my_rank: " << my_rank << " step 1 is done." << endl;
     if (verbose)
         cout << "is done." << endl;
 

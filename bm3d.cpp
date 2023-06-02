@@ -57,9 +57,9 @@ bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
 
  * @return none.
  **/
-void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
+void bm3d_1st_step(const float sigma, vector<float>  &img_noisy, vector<float> &img_basic, const unsigned width,
                    const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard,
-                   const int ranks, const int my_rank, const int local_rows) {
+                   const int ranks, const int my_rank, const int local_rows,char **argv) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
@@ -100,7 +100,15 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<vector<unsigned>> my_patch_table;
     //  MPI STARTS HERE
     precompute_BM(my_patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch, ranks, my_rank, local_rows);
+    cout << "Rank " << my_rank << " has " << my_patch_table.size() << " patches" << endl;
+    // collect and broadcast img_noisy
+    /*====================Temporary code======================*/
+    unsigned w, h;
+    vector<float> temp_img;
+    load_image(argv[1], temp_img, &w, &h);
+    makeSymmetrical(temp_img, img_noisy, w, h, nHard);
 
+    /*=========================================*/
     //! table_2D[p * N + q + (i * width + j) * kHard_squared + c * (2 * nHard + 1) * width * kHard_squared]
     vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
     //! Loop on i_r
@@ -172,8 +180,11 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         }
     } //! End of loop on i_r
     //! Final reconstruction
+    cout << "Final reconstruction" << endl;
     for (unsigned k = 0; k < width * height; k++)
         img_basic[k] = numerator[k] / denominator[k];
+
+    cout << "Final reconstruction done" << endl;
 
 }
 
@@ -624,7 +635,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                 if ((my_rank % 2) == 1) {
                     MPI_Send(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank - 1, 0,
                              MPI_COMM_WORLD);
-                } else if(my_rank != ranks - 1){
+                } else if (my_rank != ranks - 1) {
                     MPI_Recv(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank + 1, 0,
                              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
@@ -749,7 +760,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
         if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
             for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
                 //! Initialization
-                const unsigned k_r = (row_ind[ind_i] - (my_min)+nHard) * width + column_ind[ind_j];
+                const unsigned k_r = (row_ind[ind_i] - (my_min) + nHard) * width + column_ind[ind_j];
                 //const unsigned k_r_local = (ind_i - my_min) * width + column_ind[ind_j];
 
                 table_distance.clear();
@@ -787,23 +798,83 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                 //! Keep a maximum of nHard similar patches
                 for (unsigned n = 0; n < nSx_r; n++)
                     patch_table[k_r].push_back(table_distance[n].second);
+
             }
         }
     }
+
     cout << "rank " << my_rank << " finished patch_table" << endl;
-//    if (my_rank == 0) {
-//        counts[0] = int(patch_table_local.size());
-//        displs[0] = int(nHard * width);
-//        for (int rank = 1; rank < ranks; rank++) {
-//            MPI_Recv(&counts[rank], 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//            displs[rank] = displs[rank - 1] + counts[rank - 1];
-//        }
-//    } else {
-//        int size = int(patch_table_local.size());
-//        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-//    }
-//
-//    MPI_Gatherv(patch_table_local.data(), int(patch_table_local.size()), MPI_UNSIGNED, patch_table.data(), &counts[0],
-//                &displs[0], MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    //gather patch_table
+    vector<vector<unsigned>> patch_table_global;
+    if (ranks > 1) {
+
+        if (my_rank == 0) {
+            patch_table_global.resize(height * width);
+            MPI_Status status;
+            for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+                if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max)
+                    for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                        const unsigned k_r_global = row_ind[ind_i] * width + column_ind[ind_j];
+                        const unsigned k_r = (row_ind[ind_i] - (my_min) + nHard) * width + column_ind[ind_j];
+                        patch_table_global[k_r_global] = patch_table[k_r];
+                    }
+            }
+            //receive from all other processes
+
+            for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+                // only work if row_ind is in range of local rows of the process
+                for (int rank = 1; rank < ranks; ++rank) {
+                    unsigned rank_min = (rank * (local_rows - nHard)) + nHard;
+                    unsigned rank_max = ((rank + 1) * (local_rows - nHard)) + nHard;
+                    if (row_ind[ind_i] >= rank_min && row_ind[ind_i] < rank_max) {
+                        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                            const unsigned k_r = (row_ind[ind_i]) * width + column_ind[ind_j];
+                            int size = -1;
+                            MPI_Recv(&size, 1, MPI_INT, rank, 0, MPI_COMM_WORLD, &status);
+                            const unsigned k_r_global = (row_ind[ind_i]) * width + column_ind[ind_j];
+                            patch_table_global[k_r_global].resize(size);
+                            MPI_Recv(&patch_table_global[k_r][0], size, MPI_UNSIGNED, rank, 0, MPI_COMM_WORLD, &status);
+                        }
+                    }
+                }
+            }
+        } else {
+            //send to process 0
+            for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+                // only work if row_ind is in range of local rows of the process
+                if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
+                    for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                        const unsigned k_r = (row_ind[ind_i] - (my_min) + nHard) * width + column_ind[ind_j];
+                        int size = int(patch_table[k_r].size());
+                        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+                        MPI_Send(&patch_table[k_r][0], size, MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD);
+                    }
+                }
+            }
+        }
+        //broadcast to all processes
+        MPI_Barrier(MPI_COMM_WORLD);
+        cout << "rank " << my_rank << " finished sending" << endl;
+        if (my_rank != 0)
+            patch_table_global.resize(height * width);
+        for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                const unsigned k_r = (row_ind[ind_i]) * width + column_ind[ind_j];
+                int size;
+                if (my_rank == 0)
+                    size = int(patch_table_global[k_r].size());
+                MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                if (my_rank != 0)
+                    patch_table_global[k_r].resize(size);
+
+                MPI_Bcast(&patch_table_global[k_r], size, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+            }
+        }
+        cout << "rank " << my_rank << " finished receiving" << endl;
+        //patch_table.clear();
+        std::swap(patch_table_global, patch_table);
+        cout << "rank " << my_rank << " finished swapping" << endl;
+        patch_table_global.clear();
+        cout << "rank " << my_rank << " clearing" << endl;
+    }
+
 }
