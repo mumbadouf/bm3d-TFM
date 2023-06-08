@@ -5,7 +5,8 @@ project(bm3d)
 if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE "Release")
 endif ()
-
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 # Are we using gcc?
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # GCC on MacOs needs this option to use the clang assembler
