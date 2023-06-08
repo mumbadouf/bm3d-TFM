@@ -5,6 +5,7 @@
 
 #include "bm3d.h"
 #include "utilities.h"
+#include "lib_transforms.h"
 #include "mpi.h"
 
 using namespace std;
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
         height = 10;
         nHard = 4;//16; //! Half ranks of the search window
         nWien = 4;//16; //! Half ranks of the search window
-        patch_size = 4;
+        patch_size = 2;
         kHard = patch_size;// must be a power of 2
         kWien = patch_size;
         img_noisy.resize(width * height);
@@ -107,7 +108,37 @@ int main(int argc, char **argv) {
     //! Denoising, 1st Step
     if (verbose)
         cout << "BM3D 1st step...";
-    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard);
+    vector<float> my_table_2D((2 * nHard + 1) * widthBoundary * kHard * kHard, 0.0f);//(row_ind.size(), vector<float>((2 * nHard + 1) * width * kHard_squared, 0.0f));
+    unsigned local_rows = (heightBoundary - 2 * nHard) / ranks + nHard;
+    if (my_rank == 0) {
+        vector<unsigned> row_ind;
+        vector<float> lpd, hpd, lpr, hpr;
+        bior15_coef(lpd, hpd, lpr, hpr);
+        ind_initialize(row_ind, heightBoundary - kHard + 1, nHard, pHard);
+
+        vector<float> table_2D_temp((2 * nHard + 1) * widthBoundary * kHard*kHard, 0.0f);
+        int rank = 0;
+        unsigned rank_max = (rank + 1) * (local_rows - nHard) + nHard;
+        for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
+            const unsigned i_row = row_ind[ind_i];
+            //! Update of my_table_2D
+            //each CPU depends on the calculation of the previous one
+            if(rank < ranks-1){
+                bior_2d_process(table_2D_temp, img_noisy, nHard, width, kHard, i_row, pHard, row_ind[0], row_ind.back(),
+                                lpd, hpd);
+                if (row_ind[ind_i+1] >= rank_max) {
+                    rank++;
+                    MPI_Send(table_2D_temp.data(), int(table_2D_temp.size()), MPI_FLOAT, rank, 0, MPI_COMM_WORLD);
+                    rank_max = (rank + 1) * (local_rows - nHard) + nHard;
+                }
+            }
+        }
+
+    } else {
+        MPI_Recv(my_table_2D.data(), int(my_table_2D.size()), MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    }
+    bm3d_1st_step(sigma, img_sym_noisy, img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard, my_table_2D,ranks,my_rank,local_rows);
     if (verbose)
         cout << "is done." << endl;
 

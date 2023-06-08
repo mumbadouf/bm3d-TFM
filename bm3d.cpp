@@ -58,7 +58,7 @@ bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
  * @return none.
  **/
 void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
-                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard) {
+                   const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard,vector<float> &table_2D,int ranks,int my_rank,unsigned local_rows) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
@@ -101,12 +101,28 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     precompute_BM(patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch);
 
     //! table_2D[p * N + q + (i * width + j) * kHard_squared + c * (2 * nHard + 1) * width * kHard_squared]
-    vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
+    // vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
+    unsigned my_min, my_max;
+
+    if (my_rank == 0) {
+        my_min = nHard;
+        my_max = (local_rows - nHard) + nHard;
+    } else {
+        my_min = (my_rank * (local_rows - nHard)) + nHard;
+        my_max = (my_rank + 1) * (local_rows - nHard) + nHard;
+    }
+    if (my_rank == ranks - 1) {
+        my_max = height - nHard;
+    }
+
+
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         const unsigned i_row = row_ind[ind_i];
 
         //! Update of table_2D
+        //each CPU depends on the calculation of the previous one
+
         bior_2d_process(table_2D, img_noisy, nHard, width, kHard, i_row, pHard, row_ind[0], row_ind.back(), lpd, hpd);
 
         wx_r_table.clear();
@@ -348,8 +364,8 @@ void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, con
 
         for (unsigned i = 0; i < 2 * nHard + 1; i++)
             for (unsigned j = 0; j < width - kHard; j++) {
-                bior_2d_forward(img, bior_table_2D, kHard, (i_row + i - nHard) * width + j, width, (i * width + j) * kHard_squared,
-                                lpd, hpd);
+                bior_2d_forward(img, bior_table_2D, kHard, (i_row + i - nHard) * width + j, width,
+                                (i * width + j) * kHard_squared, lpd, hpd);
             }
     } else {
         const unsigned ds = pHard * width * kHard_squared;
@@ -359,14 +375,16 @@ void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, con
         for (unsigned i = 0; i < 2 * nHard + 1 - pHard; i++)
             for (unsigned j = 0; j < width - kHard; j++)
                 for (unsigned k = 0; k < kHard_squared; k++)
-                    bior_table_2D[k + (i * width + j) * kHard_squared] = bior_table_2D[k + (i * width + j) * kHard_squared + ds];
+                    bior_table_2D[k + (i * width + j) * kHard_squared] = bior_table_2D[k +
+                                                                                       (i * width + j) * kHard_squared +
+                                                                                       ds];
 
         //! Compute the new Bior
 
         for (unsigned i = 0; i < pHard; i++)
             for (unsigned j = 0; j < width - kHard; j++) {
-                bior_2d_forward(img, bior_table_2D, kHard, (i + 2 * nHard + 1 - pHard + i_row - nHard) * width + j, width,
-                                ((i + 2 * nHard + 1 - pHard) * width + j) * kHard_squared, lpd, hpd);
+                bior_2d_forward(img, bior_table_2D, kHard, (i + 2 * nHard + 1 - pHard + i_row - nHard) * width + j,
+                                width, ((i + 2 * nHard + 1 - pHard) * width + j) * kHard_squared, lpd, hpd);
             }
     }
 }

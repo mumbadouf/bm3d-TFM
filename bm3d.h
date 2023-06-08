@@ -12,6 +12,10 @@ void bm3d_1st_step(
 ,    unsigned nHard
 ,    unsigned kHard
 ,    unsigned pHard
+,   std::vector<float> &table_2D
+,   int ranks
+,   int my_rank
+,   unsigned local_rows
 );
 
 //! 2nd step of BM3D
