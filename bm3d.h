@@ -15,6 +15,7 @@ void bm3d_1st_step(
 ,    int ranks
 ,    int my_rank
 ,    int local_rows
+,   std::vector<float> &my_table_2D
 );
 
 //! 2nd step of BM3D
@@ -31,6 +32,8 @@ void bm3d_2nd_step(
 ,    int ranks
 ,    int my_rank
 ,    int local_rows
+,   std::vector<float> &table_2D_img
+,   std::vector<float> &table_2D_est
 );
 
 //! Process 2D bior1.5 transform of a group of patches

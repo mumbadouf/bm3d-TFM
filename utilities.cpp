@@ -189,7 +189,6 @@ void ind_initialize(vector<unsigned> &ind_set, const unsigned max_size, const un
     if (ind_set.back() < max_size - nHard - 1)
         ind_set.push_back(max_size - nHard - 1);
 }
-
 void print_vector(std::string const &msg, vector<float> const &vec, int width, int height) {
     cout << msg << endl;
     for (int i = 0; i < height; i++) {

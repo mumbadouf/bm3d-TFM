@@ -59,7 +59,7 @@ bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
  **/
 void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
                    const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard,
-                   const int ranks, const int my_rank, const int local_rows) {
+                   const int ranks, const int my_rank, const int local_rows,vector<float> &my_table_2D) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f;                              //! Threshold for Hard Thresholding
@@ -81,8 +81,8 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<float> hadamard_tmp(nHard);
 
     //! For aggregation part
-    vector<float> denominator(width * height, 0.0f);
-    vector<float> numerator(width * height, 0.0f);
+    vector<float> denominator(width * local_rows, 0.0f);
+    vector<float> numerator(width * local_rows, 0.0f);
 
     ind_initialize(row_ind, height - kHard + 1, nHard, pHard);
     ind_initialize(column_ind, width - kHard + 1, nHard, pHard);
@@ -100,81 +100,93 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<vector<unsigned>> my_patch_table;
     //  MPI STARTS HERE
     precompute_BM(my_patch_table, img_noisy, width, height, kHard, nHard, pHard, tauMatch, ranks, my_rank, local_rows);
-
-    //! table_2D[p * N + q + (i * width + j) * kHard_squared + c * (2 * nHard + 1) * width * kHard_squared]
-    vector<float> table_2D((2 * nHard + 1) * width * kHard_squared, 0.0f);
+    cout << "Rank: " << my_rank << " finished precompute_BM"<< endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    unsigned my_min, my_max;
+    if (my_rank == 0) {
+        my_min = nHard;
+        my_max = local_rows - nHard;
+    } else {
+        my_min = (my_rank * (local_rows - (2*nHard))) + nHard;
+        my_max = (my_rank + 1) * (local_rows - (2*nHard)) + nHard;
+    }
+    if (my_rank == ranks - 1) {
+        my_max = height - nHard;
+    }
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         const unsigned row_index = row_ind[ind_i];
+        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
+            //! Update of table_2D
+            bior_2d_process(my_table_2D, img_noisy, nHard, width, kHard, row_index, pHard, row_ind[0], row_ind.back(), lpd,
+                            hpd);
+            wx_r_table.clear();
+            group_3D_table.clear();
 
-        //! Update of table_2D
-        bior_2d_process(table_2D, img_noisy, nHard, width, kHard, row_index, pHard, row_ind[0], row_ind.back(), lpd,
-                        hpd);
+            //! Loop on j_r
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                //! Initialization
+                const unsigned k_r = (row_index- (my_min)+nHard) * width + column_ind[ind_j];//local k_r
+               // const unsigned k_r = row_index * width + col_index; //global k_r
+                //! Number of similar patches
+                const unsigned nSx_r = my_patch_table[k_r].size();
 
-        wx_r_table.clear();
-        group_3D_table.clear();
+                //! Build of the 3D group
+                vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
 
-        //! Loop on j_r
-        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
-            //! Initialization
-            const unsigned col_index = column_ind[ind_j];
-            const unsigned k_r = row_index * width + col_index;
+                for (unsigned n = 0; n < nSx_r; n++) {
+                    const unsigned ind = my_patch_table[k_r][n] + (nHard - (row_index-my_min+nHard)) * width;
+                    for (unsigned k = 0; k < kHard_squared; k++)
+                        group_3D[n + k * nSx_r + 0] = my_table_2D[k + ind * kHard_squared];
+                }
 
-            //! Number of similar patches
-            const unsigned nSx_r = my_patch_table[k_r].size();
+                //! HT filtering of the 3D group
+                float weight;
+                ht_filtering_hadamard(group_3D, hadamard_tmp, nSx_r, kHard, sigma, lambdaHard3D, &weight);
 
-            //! Build of the 3D group
-            vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
+                //! Save the 3D group. The DCT 2D inverse will be done after.
 
-            for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned ind = my_patch_table[k_r][n] + (nHard - row_index) * width;
-                for (unsigned k = 0; k < kHard_squared; k++)
-                    group_3D[n + k * nSx_r + 0] = table_2D[k + ind * kHard_squared + 0];
+                for (unsigned n = 0; n < nSx_r; n++)
+                    for (unsigned k = 0; k < kHard_squared; k++)
+                        group_3D_table.push_back(group_3D[n + k * nSx_r + 0]);
+
+                //! Save weighting
+
+                wx_r_table.push_back(weight);
+
+            } //! End of loop on j_r
+
+            //!  Apply 2D inverse transform
+            bior_2d_inverse(group_3D_table, kHard, lpr, hpr);
+            //! Registration of the weighted estimation
+            unsigned dec = 0;
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                const unsigned j_r = column_ind[ind_j];
+                const unsigned k_r = (row_index-my_min+nHard) * width + j_r;
+                const unsigned nSx_r = my_patch_table[k_r].size();
+
+                for (unsigned n = 0; n < nSx_r; n++) {
+                    const unsigned k = my_patch_table[k_r][n];
+                    for (unsigned p = 0; p < kHard; p++)
+                        for (unsigned q = 0; q < kHard; q++) {
+                            const unsigned ind = k + p * width + q;
+                            numerator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j] *
+                                              group_3D_table[p * kHard + q + n * kHard_squared + dec];
+                            denominator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j];
+                        }
+                }
+                dec += nSx_r * kHard_squared;
             }
-
-            //! HT filtering of the 3D group
-            float weight;
-            ht_filtering_hadamard(group_3D, hadamard_tmp, nSx_r, kHard, sigma, lambdaHard3D, &weight);
-
-            //! Save the 3D group. The DCT 2D inverse will be done after.
-
-            for (unsigned n = 0; n < nSx_r; n++)
-                for (unsigned k = 0; k < kHard_squared; k++)
-                    group_3D_table.push_back(group_3D[n + k * nSx_r + 0]);
-
-            //! Save weighting
-
-            wx_r_table.push_back(weight);
-
-        } //! End of loop on j_r
-
-        //!  Apply 2D inverse transform
-        bior_2d_inverse(group_3D_table, kHard, lpr, hpr);
-
-        //! Registration of the weighted estimation
-        unsigned dec = 0;
-        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
-            const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = row_index * width + j_r;
-            const unsigned nSx_r = my_patch_table[k_r].size();
-
-            for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned k = my_patch_table[k_r][n] + 0;
-                for (unsigned p = 0; p < kHard; p++)
-                    for (unsigned q = 0; q < kHard; q++) {
-                        const unsigned ind = k + p * width + q;
-                        numerator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j] *
-                                          group_3D_table[p * kHard + q + n * kHard_squared + 0 + dec];
-                        denominator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j];
-                    }
-            }
-            dec += nSx_r * kHard_squared;
         }
     } //! End of loop on i_r
     //! Final reconstruction
-    for (unsigned k = 0; k < width * height; k++)
+    cout << "Rank: " << my_rank << " Starting reconstruction"<< endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+    for (unsigned k = 0; k < width * local_rows; k++)
         img_basic[k] = numerator[k] / denominator[k];
 
+  //  cout << "Rank " << my_rank << " finished final reconstruction"  << endl;
 }
 
 /**
@@ -199,7 +211,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
  **/
 void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic,
                    vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned nWien,
-                   const unsigned kWien, const unsigned pWien, int ranks, int my_rank, int local_rows) {
+                   const unsigned kWien, const unsigned pWien, int ranks, int my_rank, int local_rows,vector<float> &table_2D_img,vector<float> &table_2D_est) {
     //! Parameters initialization
     const float tauMatch = (sigma < 35.0f ? 400.f
                                           : 3500.f); //! threshold used to determinate similarity between patches
@@ -226,92 +238,101 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
     preProcess(kaiser_window, coef_norm, coef_norm_inv, kWien);
 
     //! For aggregation part
-    vector<float> denominator(width * height, 0.0f);
-    vector<float> numerator(width * height, 0.0f);
+    vector<float> denominator(width * local_rows, 0.0f);
+    vector<float> numerator(width * local_rows, 0.0f);
 
     //! Precompute Bloc-Matching
-    vector<vector<unsigned>> patch_table;
-    precompute_BM(patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch, ranks, my_rank, local_rows);
+    vector<vector<unsigned>> my_patch_table;
+    precompute_BM(my_patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch, ranks, my_rank, local_rows);
 
     //! Preprocessing of Bior table
     vector<float> lpd, hpd, lpr, hpr;
     bior15_coef(lpd, hpd, lpr, hpr);
-
-    //! DCT_table_2D[p * N + q + (i * width + j) * kWien_2 + c * (2 * ns + 1) * width * kWien_2]
-    vector<float> table_2D_img((2 * nWien + 1) * width * kWien_2, 0.0f);
-    vector<float> table_2D_est((2 * nWien + 1) * width * kWien_2, 0.0f);
-
+    unsigned my_min, my_max;
+    if (my_rank == 0) {
+        my_min = nWien;
+        my_max = local_rows - nWien;
+    } else {
+        my_min = (my_rank * (local_rows - (2*nWien))) + nWien;
+        my_max = (my_rank + 1) * (local_rows - (2*nWien)) + nWien;
+    }
+    if (my_rank == ranks - 1) {
+        my_max = height - nWien;
+    }
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         const unsigned i_r = row_ind[ind_i];
+        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
+            //! Update of DCT_table_2D
+            bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
+            bior_2d_process(table_2D_est, img_basic, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
 
-        //! Update of DCT_table_2D
-        bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
-        bior_2d_process(table_2D_est, img_basic, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd, hpd);
+            wx_r_table.clear();
+            group_3D_table.clear();
 
-        wx_r_table.clear();
-        group_3D_table.clear();
+            //! Loop on j_r
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                //! Initialization
+                const unsigned j_r = column_ind[ind_j];
+                const unsigned k_r = (i_r-my_min+nWien) * width + j_r;
+                //const unsigned k_r = i_r * width + j_r;
 
-        //! Loop on j_r
-        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
-            //! Initialization
-            const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
+                //! Number of similar patches
+                const unsigned nSx_r = my_patch_table[k_r].size();
 
-            //! Number of similar patches
-            const unsigned nSx_r = patch_table[k_r].size();
+                //! Build of the 3D group
+                vector<float> group_3D_est(nSx_r * kWien_2, 0.0f);
+                vector<float> group_3D_img(nSx_r * kWien_2, 0.0f);
 
-            //! Build of the 3D group
-            vector<float> group_3D_est(nSx_r * kWien_2, 0.0f);
-            vector<float> group_3D_img(nSx_r * kWien_2, 0.0f);
-
-            for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned ind = patch_table[k_r][n] + (nWien - i_r) * width;
-                for (unsigned k = 0; k < kWien_2; k++) {
-                    group_3D_est[n + k * nSx_r + 0] = table_2D_est[k + ind * kWien_2 + 0];
-                    group_3D_img[n + k * nSx_r + 0] = table_2D_img[k + ind * kWien_2 + 0];
-                }
-            }
-
-            //! Wiener filtering of the 3D group
-            float weight;
-            wiener_filtering_hadamard(group_3D_img, group_3D_est, tmp, nSx_r, kWien, sigma, &weight);
-
-            //! Save the 3D group. The DCT 2D inverse will be done after.
-
-            for (unsigned n = 0; n < nSx_r; n++)
-                for (unsigned k = 0; k < kWien_2; k++)
-                    group_3D_table.push_back(group_3D_est[n + k * nSx_r]);
-
-            //! Save weighting
-
-            wx_r_table.push_back(weight);
-
-        } //! End of loop on j_r
-
-        //!  Apply 2D bior inverse
-        bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
-
-        //! Registration of the weighted estimation
-        unsigned dec = 0;
-        for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
-            const unsigned j_r = column_ind[ind_j];
-            const unsigned k_r = i_r * width + j_r;
-            const unsigned nSx_r = patch_table[k_r].size();
-
-            for (unsigned n = 0; n < nSx_r; n++) {
-                const unsigned k = patch_table[k_r][n];
-                for (unsigned p = 0; p < kWien; p++)
-                    for (unsigned q = 0; q < kWien; q++) {
-                        const unsigned ind = k + p * width + q;
-                        numerator[ind] += kaiser_window[p * kWien + q] * wx_r_table[ind_j] *
-                                          group_3D_table[p * kWien + q + n * kWien_2 + dec];
-                        denominator[ind] += kaiser_window[p * kWien + q] * wx_r_table[ind_j];
+                for (unsigned n = 0; n < nSx_r; n++) {
+                    const unsigned ind = my_patch_table[k_r][n] + (nWien - i_r) * width;
+                    for (unsigned k = 0; k < kWien_2; k++) {
+                        group_3D_est[n + k * nSx_r + 0] = table_2D_est[k + ind * kWien_2 + 0];
+                        group_3D_img[n + k * nSx_r + 0] = table_2D_img[k + ind * kWien_2 + 0];
                     }
-            }
+                }
 
-            dec += nSx_r * kWien_2;
+                //! Wiener filtering of the 3D group
+                float weight;
+                wiener_filtering_hadamard(group_3D_img, group_3D_est, tmp, nSx_r, kWien, sigma, &weight);
+
+                //! Save the 3D group. The DCT 2D inverse will be done after.
+
+                for (unsigned n = 0; n < nSx_r; n++)
+                    for (unsigned k = 0; k < kWien_2; k++)
+                        group_3D_table.push_back(group_3D_est[n + k * nSx_r]);
+
+                //! Save weighting
+
+                wx_r_table.push_back(weight);
+
+            } //! End of loop on j_r
+
+            //!  Apply 2D bior inverse
+            bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
+
+            //! Registration of the weighted estimation
+            unsigned dec = 0;
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
+                const unsigned j_r = column_ind[ind_j];
+                const unsigned k_r = i_r * width + j_r;
+                const unsigned nSx_r = my_patch_table[k_r].size();
+
+                for (unsigned n = 0; n < nSx_r; n++) {
+                    const unsigned k = my_patch_table[k_r][n];
+                    for (unsigned p = 0; p < kWien; p++)
+                        for (unsigned q = 0; q < kWien; q++) {
+                            const unsigned ind = k + p * width + q;
+                            numerator[ind] += kaiser_window[p * kWien + q] * wx_r_table[ind_j] *
+                                              group_3D_table[p * kWien + q + n * kWien_2 + dec];
+                            denominator[ind] += kaiser_window[p * kWien + q] * wx_r_table[ind_j];
+                        }
+                }
+
+                dec += nSx_r * kWien_2;
+            }
         }
+
 
     } //! End of loop on i_r
 
@@ -578,15 +599,15 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
     unsigned my_min;
     unsigned my_max;
     diff_table_local.resize(local_rows * width);
-    sum_table_local.resize((nHard + 1) * Ns, vector<float>((local_rows + nHard) * width, 2 * threshold));
+    sum_table_local.resize((nHard + 1) * Ns, vector<float>((local_rows) * width, 2 * threshold));
     patch_table.resize(width * local_rows);
 
     if (my_rank == 0) {
         my_min = nHard;
-        my_max = (local_rows - nHard) + nHard;
+        my_max = local_rows - nHard ;
     } else {
-        my_min = (my_rank * (local_rows - nHard)) + nHard;
-        my_max = (my_rank + 1) * (local_rows - nHard) + nHard;
+        my_min = (my_rank * (local_rows - (2*nHard))) + nHard;
+        my_max = (my_rank + 1) * (local_rows - (2*nHard)) + nHard;
     }
     if (my_rank == ranks - 1) {
         my_max = height - nHard;
@@ -637,16 +658,16 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
             }
-
+            const unsigned dn = nHard * width + nHard;
             //! 1st patch, top left corner
             float value = 0.0f;
             // reads the first 8x8 cells of the diff_table
             for (unsigned row = 0; row < patch_size; row++) {
-                unsigned pq = row * width + nHard;
+                unsigned pq = row * width +  dn;
                 for (unsigned col = 0; col < patch_size; col++, pq++)
                     value += diff_table_local[pq];
             }
-            sum_table_local[ddk][nHard] = value;
+            sum_table_local[ddk][dn] = value;
 
             //! 1st row, top
             for (unsigned col = nHard; col < width - nHard; col++) {
@@ -683,7 +704,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             }
             // share the sum_table_local
             if (ranks > 1) {
-                // share sum_table each cpu send/send to nHard rows to the previous and next cpu
+                // share sum_table each cpu send/receive nHard rows to the previous and next cpu
                 if (my_rank == 0) {
                     MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT,
                              my_rank + 1, 0, MPI_COMM_WORLD);
@@ -727,9 +748,6 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
     }
     diff_table_local.clear();
     diff_table_local.clear();
-//    for(int i = 0; i < int ((nHard + 1) * Ns) ; i++){
-//        MPI_Bcast(&sum_table[i][0], int(width * height), MPI_FLOAT, 0, MPI_COMM_WORLD);
-//    }
 
     //cout << "sum_table size: " << sum_table.size() << endl;
     ind_initialize(row_ind, height - patch_size + 1, nHard, pHard);
@@ -790,20 +808,4 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             }
         }
     }
-    cout << "rank " << my_rank << " finished patch_table" << endl;
-//    if (my_rank == 0) {
-//        counts[0] = int(patch_table_local.size());
-//        displs[0] = int(nHard * width);
-//        for (int rank = 1; rank < ranks; rank++) {
-//            MPI_Recv(&counts[rank], 1, MPI_INT, rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//            displs[rank] = displs[rank - 1] + counts[rank - 1];
-//        }
-//    } else {
-//        int size = int(patch_table_local.size());
-//        MPI_Send(&size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-//    }
-//
-//    MPI_Gatherv(patch_table_local.data(), int(patch_table_local.size()), MPI_UNSIGNED, patch_table.data(), &counts[0],
-//                &displs[0], MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-    //gather patch_table
 }
