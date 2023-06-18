@@ -39,8 +39,7 @@
 
 using namespace std;
 
-bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
-{
+bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2) {
     return pair1.first < pair2.first;
 }
 
@@ -60,8 +59,7 @@ bool compareFirst(pair<float, unsigned> pair1, pair<float, unsigned> pair2)
  **/
 void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<float> &img_basic, const unsigned width,
                    const unsigned height, const unsigned nHard, const unsigned kHard, const unsigned pHard,
-                   const int ranks, const int my_rank, const int local_rows, vector<float> &my_table_2D)
-{
+                   const int ranks, const int my_rank, const int local_rows, vector<float> &my_table_2D) {
 
     //! Parameters initialization
     const float lambdaHard3D = 2.7f; //! Threshold for Hard Thresholding
@@ -86,7 +84,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     // vector<float> denominator(width * local_rows, 0.0f);
     // vector<float> numerator(width * local_rows, 0.0f);
     // numerator.reserve(width * local_rows);
-    vector<float> denominator (width * local_rows,  0.0f);
+    vector<float> denominator(width * local_rows, 0.0f);
     vector<float> numerator;
     numerator.reserve(width * local_rows);
 
@@ -109,29 +107,22 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     // cout << "Rank: " << my_rank << " finished precompute_BM" << endl;
     // MPI_Barrier(MPI_COMM_WORLD);
     unsigned my_min, my_max;
-    if (my_rank == 0)
-    {
+    if (my_rank == 0) {
         my_min = nHard;
         my_max = local_rows - nHard;
-    }
-    else if (my_rank != ranks - 1)
-    {
+    } else if (my_rank != ranks - 1) {
         my_min = (my_rank * (local_rows - (2 * nHard))) + nHard;
         my_max = (my_rank + 1) * (local_rows - (2 * nHard)) + nHard;
-    }
-    else
-    {
+    } else {
         my_min = (my_rank * ((height - (2 * nHard)) / ranks)) + nHard;
         my_max = row_ind.back() + 1;
     }
-    cout << "Rank: " << my_rank << " " << my_min << "x" << my_max << endl;
+    //cout << "Rank: " << my_rank << " " << my_min << "x" << my_max << endl;
 
     //! Loop on i_r
-    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
-    {
+    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         const unsigned row_index = row_ind[ind_i];
-        if (row_index >= my_min && row_index < my_max)
-        {
+        if (row_index >= my_min && row_index < my_max) {
             //! Update of table_2D
             bior_2d_process(my_table_2D, img_noisy, nHard, width, kHard, (row_index - (my_min) + nHard), pHard,
                             row_ind[0], row_ind.back(), lpd, hpd);
@@ -140,8 +131,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
             //            if (my_rank == 0 && row_index == 277)
             //                cout << "Rank: " << my_rank << " ind_row " << row_ind[ind_i] << " first coll loop" << endl;
             //! Loop on j_r
-            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
-            {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
                 //! Initialization
                 const unsigned k_r = (row_index - (my_min) + nHard) * width + column_ind[ind_j]; // local k_r
                 // const unsigned k_r = row_index * width + col_index; //global k_r
@@ -151,8 +141,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
                 //! Build of the 3D group
                 vector<float> group_3D(nSx_r * kHard_squared, 0.0f);
 
-                for (unsigned n = 0; n < nSx_r; n++)
-                {
+                for (unsigned n = 0; n < nSx_r; n++) {
                     const unsigned ind = my_patch_table[k_r][n] + (nHard - (row_index - my_min + nHard)) * width;
                     for (unsigned k = 0; k < kHard_squared; k++)
                         group_3D[n + k * nSx_r] = my_table_2D[k + ind * kHard_squared];
@@ -183,8 +172,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
             //                cout << "Rank: " << my_rank << " ind_row " << row_index << " 2nd col loop" << endl;
             unsigned dec = 0;
 
-            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
-            {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
 
                 unsigned j_r = column_ind[ind_j];
                 unsigned k_r = (row_index - my_min + nHard) * width + j_r;
@@ -196,28 +184,25 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
                 //     cout << "   k_r " << k_r << "    dec " << dec << endl; //"   nSxR " << nSx_r <<
                 // }
                 const unsigned nSx_r = my_patch_table[k_r].size();
-                for (unsigned n = 0; n < nSx_r; n++)
-                {
+                for (unsigned n = 0; n < nSx_r; n++) {
                     const unsigned k = my_patch_table[k_r][n];
-                    for (unsigned p = 0; p < kHard; p++)
-                    {
-                        for (unsigned q = 0; q < kHard; q++)
-                        {
+                    for (unsigned p = 0; p < kHard; p++) {
+                        for (unsigned q = 0; q < kHard; q++) {
                             const unsigned ind = k + p * width + q;
-                            if (my_rank == 0 && row_index == 277 && j_r == 874 && n==12)
-                            {
-                                cout << "n " << n << "; k " << k << "; p " << p << "; q " << q << "; ind " << ind << endl;
-                                cout << "   Rank: " << my_rank << " col_ind[287] " << column_ind[287] << " " << ind_j << endl;
-                                // cout << "   ind " << ind << endl;
-                                // cout << "   kaiser_window " << kaiser_window[p * kHard + q] << endl;
-                                // cout << "   g3d " << group_3D_table[p * kHard + q + n * kHard_squared + dec] << endl;
-                                // cout << "   numerator " << numerator[ind] << endl;
-                                // cout << "   denominator " << denominator[ind] << endl;
-                                // cout << "   wx_r_table " << wx_r_table[ind_j] << endl;
-                                cout << "numerator[" << ind << "] adress " << &numerator[ind] << endl;
-                                cout << "numerator[" << ind << "] " << numerator[ind] << endl;
-                                cout << "col_ind[287] address " << &column_ind[287] << endl;
-                            }
+                            //if (my_rank == 0 && row_index == 277 && j_r == 874 && n==12)
+                            //{
+                            //cout << "n " << n << "; k " << k << "; p " << p << "; q " << q << "; ind " << ind << endl;
+                            //cout << "   Rank: " << my_rank << " col_ind[287] " << column_ind[287] << " " << ind_j << endl;
+                            // cout << "   ind " << ind << endl;
+                            // cout << "   kaiser_window " << kaiser_window[p * kHard + q] << endl;
+                            // cout << "   g3d " << group_3D_table[p * kHard + q + n * kHard_squared + dec] << endl;
+                            // cout << "   numerator " << numerator[ind] << endl;
+                            // cout << "   denominator " << denominator[ind] << endl;
+                            // cout << "   wx_r_table " << wx_r_table[ind_j] << endl;
+                            // cout << "numerator[" << ind << "] address " << &numerator[ind] << endl;
+                            // cout << "numerator[" << ind << "] " << numerator[ind] << endl;
+                            // cout << "col_ind[287] address " << &column_ind[287] << endl;
+                            //}
 
                             numerator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j] *
                                               group_3D_table[p * kHard + q + n * kHard_squared + dec];
@@ -233,7 +218,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
     } //! End of loop on i_r
     MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank: " << my_rank << " clearing memory " << endl;
+    //cout << "Rank: " << my_rank << " clearing memory " << endl;
     my_patch_table.clear();
     group_3D_table.clear();
     wx_r_table.clear();
@@ -243,17 +228,17 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     coef_norm.clear();
     coef_norm_inv.clear();
     hadamard_tmp.clear();
-    cout << "Rank: " << my_rank << " finished clearing memory " << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank: " << my_rank << " before reconstruction" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank: " << my_rank << " finished clearing memory " << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank: " << my_rank << " before reconstruction" << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
     //! Final reconstruction
     for (unsigned k = 0; k < width * local_rows; k++)
         img_basic[k] = numerator[k] / denominator[k];
-    MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank " << my_rank << " finished final reconstruction" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank " << my_rank << " finished final reconstruction" << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
 }
 
 /**
@@ -279,8 +264,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
 void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<float> const &img_basic,
                    vector<float> &img_denoised, const unsigned width, const unsigned height, const unsigned nWien,
                    const unsigned kWien, const unsigned pWien, int ranks, int my_rank, int local_rows,
-                   vector<float> &table_2D_img, vector<float> &table_2D_est)
-{
+                   vector<float> &table_2D_img, vector<float> &table_2D_est) {
     //! Parameters initialization
     const float tauMatch = (sigma < 35.0f ? 400.f
                                           : 3500.f); //! threshold used to determinate similarity between patches
@@ -318,26 +302,20 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
     vector<float> lpd, hpd, lpr, hpr;
     bior15_coef(lpd, hpd, lpr, hpr);
     unsigned my_min, my_max;
-    if (my_rank == 0)
-    {
+    if (my_rank == 0) {
         my_min = nWien;
         my_max = local_rows - nWien;
-    }
-    else
-    {
+    } else {
         my_min = (my_rank * (local_rows - (2 * nWien))) + nWien;
         my_max = (my_rank + 1) * (local_rows - (2 * nWien)) + nWien;
     }
-    if (my_rank == ranks - 1)
-    {
+    if (my_rank == ranks - 1) {
         my_max = height - nWien;
     }
     //! Loop on i_r
-    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
-    {
+    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         const unsigned i_r = row_ind[ind_i];
-        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max)
-        {
+        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
             //! Update of DCT_table_2D
             bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd,
                             hpd);
@@ -348,8 +326,7 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
             group_3D_table.clear();
 
             //! Loop on j_r
-            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
-            {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
                 //! Initialization
                 const unsigned j_r = column_ind[ind_j];
                 const unsigned k_r = (i_r - my_min + nWien) * width + j_r;
@@ -362,11 +339,9 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
                 vector<float> group_3D_est(nSx_r * kWien_2, 0.0f);
                 vector<float> group_3D_img(nSx_r * kWien_2, 0.0f);
 
-                for (unsigned n = 0; n < nSx_r; n++)
-                {
+                for (unsigned n = 0; n < nSx_r; n++) {
                     const unsigned ind = my_patch_table[k_r][n] + (nWien - i_r) * width;
-                    for (unsigned k = 0; k < kWien_2; k++)
-                    {
+                    for (unsigned k = 0; k < kWien_2; k++) {
                         group_3D_est[n + k * nSx_r + 0] = table_2D_est[k + ind * kWien_2 + 0];
                         group_3D_img[n + k * nSx_r + 0] = table_2D_img[k + ind * kWien_2 + 0];
                     }
@@ -393,18 +368,15 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
             //! Registration of the weighted estimation
             unsigned dec = 0;
-            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
-            {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
                 const unsigned j_r = column_ind[ind_j];
                 const unsigned k_r = i_r * width + j_r;
                 const unsigned nSx_r = my_patch_table[k_r].size();
 
-                for (unsigned n = 0; n < nSx_r; n++)
-                {
+                for (unsigned n = 0; n < nSx_r; n++) {
                     const unsigned k = my_patch_table[k_r][n];
                     for (unsigned p = 0; p < kWien; p++)
-                        for (unsigned q = 0; q < kWien; q++)
-                        {
+                        for (unsigned q = 0; q < kWien; q++) {
                             const unsigned ind = k + p * width + q;
                             numerator[ind] += kaiser_window[p * kWien + q] * wx_r_table[ind_j] *
                                               group_3D_table[p * kWien + q + n * kWien_2 + dec];
@@ -444,24 +416,19 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
  **/
 void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, const unsigned nHW, const unsigned width,
                      const unsigned kHW, const unsigned i_r, const unsigned step, const unsigned i_min,
-                     const unsigned i_max, vector<float> &lpd, vector<float> &hpd)
-{
+                     const unsigned i_max, vector<float> &lpd, vector<float> &hpd) {
     //! Declarations
     const unsigned kHW_2 = kHW * kHW;
 
     //! If i_r == ns, then we have to process all Bior1.5 transforms
-    if (i_r == i_min || i_r == i_max)
-    {
+    if (i_r == i_min || i_r == i_max) {
 
         for (unsigned i = 0; i < 2 * nHW + 1; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-            {
+            for (unsigned j = 0; j < width - kHW; j++) {
                 bior_2d_forward(img, bior_table_2D, kHW, (i_r + i - nHW) * width + j, width, (i * width + j) * kHW_2,
                                 lpd, hpd);
             }
-    }
-    else
-    {
+    } else {
         const unsigned ds = step * width * kHW_2;
 
         //! Re-use of Bior1.5 already processed
@@ -474,8 +441,7 @@ void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, con
         //! Compute the new Bior
 
         for (unsigned i = 0; i < step; i++)
-            for (unsigned j = 0; j < width - kHW; j++)
-            {
+            for (unsigned j = 0; j < width - kHW; j++) {
                 bior_2d_forward(img, bior_table_2D, kHW, (i + 2 * nHW + 1 - step + i_r - nHW) * width + j, width,
                                 ((i + 2 * nHW + 1 - step) * width + j) * kHW_2, lpd, hpd);
             }
@@ -499,14 +465,13 @@ void bior_2d_process(vector<float> &bior_table_2D, vector<float> const &img, con
  * @return none.
  **/
 void ht_filtering_hadamard(vector<float> &group_3D, vector<float> &tmp, const unsigned nSx_r, const unsigned kHard,
-                           const float sigma, const float lambdaHard3D, float *weight)
-{
+                           const float sigma, const float lambdaHard3D, float *weight) {
     //! Declarations
     const unsigned kHard_2 = kHard * kHard;
 
     *weight = 0.0f;
-    const float coef_norm = sqrtf((float)nSx_r);
-    const float coef = 1.0f / (float)nSx_r;
+    const float coef_norm = sqrtf((float) nSx_r);
+    const float coef = 1.0f / (float) nSx_r;
 
     //! Process the Welsh-Hadamard transform on the 3rd dimension
     for (unsigned n = 0; n < kHard_2; n++)
@@ -515,8 +480,7 @@ void ht_filtering_hadamard(vector<float> &group_3D, vector<float> &tmp, const un
     //! Hard Thresholding
 
     const float T = lambdaHard3D * sigma * coef_norm;
-    for (unsigned k = 0; k < kHard_2 * nSx_r; k++)
-    {
+    for (unsigned k = 0; k < kHard_2 * nSx_r; k++) {
 
         if (fabs(group_3D[k]) > T)
             (*weight)++;
@@ -532,7 +496,7 @@ void ht_filtering_hadamard(vector<float> &group_3D, vector<float> &tmp, const un
         group_3D[k] *= coef;
 
     //! Weight for aggregation
-    (*weight) = ((*weight) > 0.0f ? 1.0f / (float)(sigma * sigma * (*weight)) : 1.0f);
+    (*weight) = ((*weight) > 0.0f ? 1.0f / (float) (sigma * sigma * (*weight)) : 1.0f);
 }
 
 /**
@@ -551,25 +515,22 @@ void ht_filtering_hadamard(vector<float> &group_3D, vector<float> &tmp, const un
  * @return none.
  **/
 void wiener_filtering_hadamard(vector<float> &group_3D_img, vector<float> &group_3D_est, vector<float> &tmp,
-                               const unsigned nSx_r, const unsigned kWien, const float sigma, float *weight)
-{
+                               const unsigned nSx_r, const unsigned kWien, const float sigma, float *weight) {
     //! Declarations
     const unsigned kWien_2 = kWien * kWien;
-    const float coef = 1.0f / (float)nSx_r;
+    const float coef = 1.0f / (float) nSx_r;
 
     (*weight) = 0.0f;
 
     //! Process the Welsh-Hadamard transform on the 3rd dimension
-    for (unsigned n = 0; n < kWien_2; n++)
-    {
+    for (unsigned n = 0; n < kWien_2; n++) {
         hadamard_transform(group_3D_img, tmp, nSx_r, n * nSx_r);
         hadamard_transform(group_3D_est, tmp, nSx_r, n * nSx_r);
     }
 
     //! Wiener Filtering
 
-    for (unsigned k = 0; k < kWien_2 * nSx_r; k++)
-    {
+    for (unsigned k = 0; k < kWien_2 * nSx_r; k++) {
         float value = group_3D_est[k] * group_3D_est[k] * coef;
         value /= (value + sigma * sigma);
         group_3D_est[k] = group_3D_img[k] * value * coef;
@@ -581,11 +542,11 @@ void wiener_filtering_hadamard(vector<float> &group_3D_img, vector<float> &group
         hadamard_transform(group_3D_est, tmp, nSx_r, n * nSx_r);
 
     //! Weight for aggregation
-    (*weight) = ((*weight) > 0.0f ? 1.0f / (float)(sigma * sigma * (*weight)) : 1.0f);
+    (*weight) = ((*weight) > 0.0f ? 1.0f / (float) (sigma * sigma * (*weight)) : 1.0f);
 }
 
-void bior_2d_inverse(vector<float> &group_3D_table, const unsigned kHW, vector<float> const &lpr, vector<float> const &hpr)
-{
+void
+bior_2d_inverse(vector<float> &group_3D_table, const unsigned kHW, vector<float> const &lpr, vector<float> const &hpr) {
     //! Declarations
     const unsigned kHW_2 = kHW * kHW;
     const unsigned N = group_3D_table.size() / kHW_2;
@@ -610,8 +571,8 @@ void bior_2d_inverse(vector<float> &group_3D_table, const unsigned kHW, vector<f
  *
  * @return none.
  **/
-void preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> &coef_norm_inv, const unsigned kHW)
-{
+void
+preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<float> &coef_norm_inv, const unsigned kHW) {
     //! Kaiser Window coefficients
 
     //! First quarter of the matrix
@@ -642,22 +603,16 @@ void preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<fl
             kaiserWindow[i + kHW * j] = kaiserWindow[kHW - i - 1 + kHW * j];
 
     //! Coefficient of normalization for DCT II and DCT II inverse
-    const float coef = 0.5f / ((float)(kHW));
+    const float coef = 0.5f / ((float) (kHW));
     for (unsigned i = 0; i < kHW; i++)
-        for (unsigned j = 0; j < kHW; j++)
-        {
-            if (i == 0 && j == 0)
-            {
+        for (unsigned j = 0; j < kHW; j++) {
+            if (i == 0 && j == 0) {
                 coef_norm[0] = 0.5f * coef;
                 coef_norm_inv[0] = 2.0f;
-            }
-            else if (i * j == 0)
-            {
+            } else if (i * j == 0) {
                 coef_norm[i * kHW + j] = SQRT2_INV * coef;
                 coef_norm_inv[i * kHW + j] = SQRT2;
-            }
-            else
-            {
+            } else {
                 coef_norm[i * kHW + j] = coef;
                 coef_norm_inv[i * kHW + j] = 1.0f;
             }
@@ -682,13 +637,12 @@ void preProcess(vector<float> &kaiserWindow, vector<float> &coef_norm, vector<fl
  **/
 void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &img, const unsigned width,
                    const unsigned height, const unsigned patch_size, const unsigned nHard, const unsigned pHard,
-                   const float tauMatch, int ranks, int my_rank, int local_rows)
-{
+                   const float tauMatch, int ranks, int my_rank, int local_rows) {
 
     //! Declarations
     // nHard= 16;pHard= 3;patch_size= 8;
     const unsigned Ns = 2 * nHard + 1;
-    const float threshold = tauMatch * (float)(patch_size * patch_size);
+    const float threshold = tauMatch * (float) (patch_size * patch_size);
     // vector<float> diff_table;//same size as img
     vector<float> diff_table_local; // same size as img
 
@@ -699,21 +653,16 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
     unsigned my_min;
     unsigned my_max;
     diff_table_local.resize(local_rows * width);
-    sum_table_local.resize((nHard + 1) * Ns, vector<float>((local_rows)*width, 2 * threshold));
+    sum_table_local.resize((nHard + 1) * Ns, vector<float>((local_rows) * width, 2 * threshold));
     patch_table.resize(width * local_rows);
 
-    if (my_rank == 0)
-    {
+    if (my_rank == 0) {
         my_min = nHard;
         my_max = local_rows - nHard;
-    }
-    else if (my_rank != ranks - 1)
-    {
+    } else if (my_rank != ranks - 1) {
         my_min = (my_rank * (local_rows - (2 * nHard))) + nHard;
         my_max = (my_rank + 1) * (local_rows - (2 * nHard)) + nHard;
-    }
-    else
-    {
+    } else {
         my_min = (my_rank * ((height - (2 * nHard)) / ranks)) + nHard;
         my_max = height - nHard;
     }
@@ -729,20 +678,16 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
     // my_min = 3 + nHard;
     // my_max = 5 + nHard;
     //! For each possible distance, precompute inter-patches distance
-    for (unsigned i_nHard = 0; i_nHard <= nHard; i_nHard++)
-    { // 0 to 16 inclusive
-        for (unsigned dj = 0; dj < Ns; dj++)
-        { // 0 to 33(exclusive)
-            const int dk = (int)(i_nHard * width + dj) - (int)nHard;
+    for (unsigned i_nHard = 0; i_nHard <= nHard; i_nHard++) { // 0 to 16 inclusive
+        for (unsigned dj = 0; dj < Ns; dj++) { // 0 to 33(exclusive)
+            const int dk = (int) (i_nHard * width + dj) - (int) nHard;
             const unsigned ddk = i_nHard * Ns + dj;
 
             //! Process the image containing the square distance between pixels
-            for (unsigned row = nHard; row < local_rows - nHard; row++)
-            {
+            for (unsigned row = nHard; row < local_rows - nHard; row++) {
                 // for (unsigned row = nHard; row < height-nHard; row++) {
                 unsigned k = row * width + nHard; // original img staring index
-                for (unsigned col = nHard; col < width - nHard; col++, k++)
-                {
+                for (unsigned col = nHard; col < width - nHard; col++, k++) {
                     diff_table_local[k] = (img[k + dk] - img[k]) * (img[k + dk] - img[k]);
                 }
             }
@@ -751,24 +696,18 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             // each rank sends nHard row to rank-1
             //  odd ranks send first and even receive first
 
-            if ((my_rank % 2) == 1)
-            {
+            if ((my_rank % 2) == 1) {
                 MPI_Send(&diff_table_local[local_rows - (2 * nHard)], int(width * nHard), MPI_FLOAT, my_rank - 1, 0,
                          MPI_COMM_WORLD);
-            }
-            else if (my_rank != ranks - 1)
-            {
+            } else if (my_rank != ranks - 1) {
                 MPI_Recv(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank + 1, 0,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
             // even ranks send (except root) and odd receive (except last)
-            if ((my_rank % 2) == 0 && my_rank != 0)
-            {
+            if ((my_rank % 2) == 0 && my_rank != 0) {
                 MPI_Send(&diff_table_local[local_rows - (2 * nHard)], int(width * nHard), MPI_FLOAT, my_rank - 1, 0,
                          MPI_COMM_WORLD);
-            }
-            else if (my_rank != 0 && my_rank != ranks - 1)
-            {
+            } else if (my_rank != 0 && my_rank != ranks - 1) {
                 MPI_Recv(&diff_table_local[local_rows - nHard], int(width * nHard), MPI_FLOAT, my_rank + 1, 0,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
@@ -777,8 +716,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             //! 1st patch, top left corner
             float value = 0.0f;
             // reads the first 8x8 cells of the diff_table
-            for (unsigned row = 0; row < patch_size; row++)
-            {
+            for (unsigned row = 0; row < patch_size; row++) {
                 unsigned pq = row * width + dn;
                 for (unsigned col = 0; col < patch_size; col++, pq++)
                     value += diff_table_local[pq];
@@ -786,12 +724,10 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             sum_table_local[ddk][dn] = value;
 
             //! 1st row, top
-            for (unsigned col = nHard; col < width - nHard; col++)
-            {
+            for (unsigned col = nHard; col < width - nHard; col++) {
                 const unsigned ind = nHard * width + col; // original img staring index
                 float sum = sum_table_local[ddk][ind];
-                for (unsigned patch_row = 0; patch_row < patch_size; patch_row++)
-                {
+                for (unsigned patch_row = 0; patch_row < patch_size; patch_row++) {
                     sum += diff_table_local[ind + patch_row * width + patch_size] -
                            diff_table_local[ind + patch_row * width];
                 }
@@ -799,13 +735,11 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             }
 
             //! General case
-            for (unsigned row = nHard + 1; row < local_rows - nHard; row++)
-            {
+            for (unsigned row = nHard + 1; row < local_rows - nHard; row++) {
                 const unsigned ind = (row - 1) * width + nHard; // original img start
                 float sum = sum_table_local[ddk][ind];
                 //! 1st column, left
-                for (unsigned q = 0; q < patch_size; q++)
-                {
+                for (unsigned q = 0; q < patch_size; q++) {
                     sum += diff_table_local[ind + patch_size * width + q] - diff_table_local[ind + q];
                 }
                 sum_table_local[ddk][ind + width] = sum;
@@ -813,8 +747,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                 //! Other columns
                 unsigned k = row * width + nHard + 1; // img original index
                 unsigned pq = (row + patch_size - 1) * width + patch_size + nHard;
-                for (unsigned j = nHard + 1; j < width - nHard; j++, k++, pq++)
-                {
+                for (unsigned j = nHard + 1; j < width - nHard; j++, k++, pq++) {
                     unsigned i1 = pq - patch_size;
                     unsigned i2 = pq - patch_size * width;
                     unsigned i3 = pq - patch_size - patch_size * width;
@@ -826,27 +759,20 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
             // share the sum_table_local
 
             // share sum_table each cpu send/receive nHard rows to the previous and next cpu
-            if (my_rank == 0)
-            {
+            if (my_rank == 0) {
                 MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
                          MPI_COMM_WORLD);
                 MPI_Recv(&sum_table_local[ddk][local_rows - (nHard)], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-            else if (my_rank == ranks - 1 && ranks % 2 == 0)
-            {
+            } else if (my_rank == ranks - 1 && ranks % 2 == 0) {
                 MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
                          MPI_STATUS_IGNORE);
                 MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD);
-            }
-            else if (my_rank == ranks - 1 && ranks % 2 == 1)
-            {
+            } else if (my_rank == ranks - 1 && ranks % 2 == 1) {
                 MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD);
                 MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
                          MPI_STATUS_IGNORE);
-            }
-            else if (my_rank % 2 == 1)
-            {
+            } else if (my_rank % 2 == 1) {
                 MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
                          MPI_STATUS_IGNORE);
                 MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD);
@@ -855,9 +781,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 MPI_Send(&sum_table_local[ddk][local_rows - (2 * nHard)], int(nHard * width), MPI_FLOAT, my_rank + 1, 0,
                          MPI_COMM_WORLD);
-            }
-            else
-            {
+            } else {
                 MPI_Send(&sum_table_local[ddk][nHard], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD);
                 MPI_Recv(&sum_table_local[ddk][0], int(nHard * width), MPI_FLOAT, my_rank - 1, 0, MPI_COMM_WORLD,
                          MPI_STATUS_IGNORE);
@@ -884,13 +808,10 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
 
     // vector<vector<unsigned>> patch_table_local(local_rows * width);
 
-    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
-    {
+    for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++) {
         // only work if row_ind is in range of local rows of the process
-        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max)
-        {
-            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
-            {
+        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max) {
+            for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++) {
                 //! Initialization
                 const unsigned k_r = (row_ind[ind_i] - (my_min) + nHard) * width + column_ind[ind_j];
                 // const unsigned k_r_local = (ind_i - my_min) * width + column_ind[ind_j];
@@ -899,14 +820,13 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                 patch_table[k_r].clear();
 
                 //! Threshold distances in order to keep similar patches
-                for (int dj = -(int)nHard; dj <= (int)nHard; dj++)
-                {
-                    for (int di = 0; di <= (int)nHard; di++)
+                for (int dj = -(int) nHard; dj <= (int) nHard; dj++) {
+                    for (int di = 0; di <= (int) nHard; di++)
                         if (sum_table_local[dj + nHard + di * Ns][k_r] < threshold)
                             table_distance.push_back(
                                     make_pair(sum_table_local[dj + nHard + di * Ns][k_r], k_r + di * width + dj));
 
-                    for (int di = -(int)nHard; di < 0; di++)
+                    for (int di = -(int) nHard; di < 0; di++)
                         if (sum_table_local[-dj + nHard + (-di) * Ns][k_r + di * width + dj] < threshold)
                             table_distance.push_back(
                                     make_pair(sum_table_local[-dj + nHard + (-di) * Ns][k_r + di * width + dj],
@@ -920,8 +840,7 @@ void precompute_BM(vector<vector<unsigned>> &patch_table, const vector<float> &i
                                                                       : nHard);
 
                 //! To avoid problem
-                if (nSx_r == 1 && table_distance.empty())
-                {
+                if (nSx_r == 1 && table_distance.empty()) {
                     table_distance.push_back(make_pair(0, k_r));
                 }
 
