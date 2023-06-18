@@ -75,11 +75,11 @@ int main(int argc, char **argv)
     {
         if (testing == 0)
         {
-            width = 10;
-            height = 10;
-            nHard = 4; // 16; //! Half ranks of the search window
-            nWien = 4; // 16; //! Half ranks of the search window
-            patch_size = 4;
+            width = 1280;
+            height = 800;
+            nHard = 16; // 16; //! Half ranks of the search window
+            nWien = 16; // 16; //! Half ranks of the search window
+            patch_size = 8;
             kHard = patch_size;
             kWien = patch_size;
             img_noisy.resize(width * height);
@@ -108,9 +108,9 @@ int main(int argc, char **argv)
     {
         if (testing == 0)
         {
-            nHard = 4; // 16; //! Half ranks of the search window
-            nWien = 4; // 16; //! Half ranks of the search window
-            patch_size = 4;
+            nHard = 16; // 16; //! Half ranks of the search window
+            nWien = 16; // 16; //! Half ranks of the search window
+            patch_size = 8;
             kHard = patch_size;
             kWien = patch_size;
         }
@@ -182,18 +182,18 @@ int main(int argc, char **argv)
         MPI_Recv(&my_table_2D[0], my_table_2D_size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-   // cout << "Rank: " << my_rank << " After calculating my_table_2d" << endl;
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // MPI_Barrier(MPI_COMM_WORLD);
+    // cout << "Rank: " << my_rank << " After calculating my_table_2d" << endl;
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     //! Denoising, 1st Step
-    if (verbose)
-        cout << "BM3D 1st step...";
+    if (verbose && my_rank ==0)
+        cout << "BM3D 1st step..."<<endl;
     bm3d_1st_step(sigma, my_img_sym_noisy, my_img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard, ranks,
                   my_rank, int(local_rows + (2 * nHard)), my_table_2D);
 
     cout << "Rank: " << my_rank << " finished step 1" << endl;
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+
     for (int i = 0; i < ranks; i++)
     {
         counts[i] -= int(2 * nHard * widthBoundary);
@@ -203,6 +203,7 @@ int main(int argc, char **argv)
         displs[i] += int(nHard * widthBoundary);
     }
 
+
     if (my_rank == 0)
         img_sym_basic.resize(widthBoundary * heightBoundary);
     MPI_Gatherv(&my_img_sym_basic[nHard * widthBoundary], int(local_rows * widthBoundary), MPI_FLOAT,
@@ -210,7 +211,7 @@ int main(int argc, char **argv)
     cout << "Rank: " << my_rank << " Gathered step 1" << endl;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
-    if (verbose)
+    if (verbose && my_rank ==0)
         cout << "is done." << endl;
     if (my_rank == 0)
     {
@@ -228,7 +229,7 @@ int main(int argc, char **argv)
     }
 
     //! Denoising, 2nd Step
-    if (verbose)
+    if (verbose && my_rank ==0)
         cout << "BM3D 2nd step...";
     for (int i = 0; i < ranks; i++)
     {
@@ -247,7 +248,7 @@ int main(int argc, char **argv)
     vector<float> table_2D_est((2 * nWien + 1) * widthBoundary * kWien * kWien, 0.0f);
     if (my_rank == 0)
     {
-       
+
         vector<float> table_2D_temp_img((2 * nWien + 1) * widthBoundary * kWien * kWien, 0.0f);
         vector<float> table_2D_temp_est((2 * nWien + 1) * widthBoundary * kWien * kWien, 0.0f);
         int rank = 0;
@@ -287,7 +288,7 @@ int main(int argc, char **argv)
                   pWien, ranks, my_rank, int(local_rows + (2 * nHard)), table_2D_img, table_2D_est);
     cout << "Rank: " << my_rank << "finished step 2" << endl;
     MPI_Barrier(MPI_COMM_WORLD);
-    if (verbose)
+    if (verbose && my_rank ==0)
         cout << "is done." << endl;
 
     for (int &count : counts)
