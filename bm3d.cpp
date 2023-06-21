@@ -124,7 +124,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
         my_min = (my_rank * ((height - (2 * nHard)) / ranks)) + nHard;
         my_max = row_ind.back() + 1;
     }
-    cout << "Rank: " << my_rank << " " << my_min << "x" << my_max << endl;
+    //cout << "Rank: " << my_rank << " " << my_min << "x" << my_max << endl;
 
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
@@ -204,20 +204,20 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
                         for (unsigned q = 0; q < kHard; q++)
                         {
                             const unsigned ind = k + p * width + q;
-                            if (my_rank == 0 && row_index == 277 && j_r == 874 && n==12)
-                            {
-                                cout << "n " << n << "; k " << k << "; p " << p << "; q " << q << "; ind " << ind << endl;
-                                cout << "   Rank: " << my_rank << " col_ind[287] " << column_ind[287] << " " << ind_j << endl;
-                                // cout << "   ind " << ind << endl;
-                                // cout << "   kaiser_window " << kaiser_window[p * kHard + q] << endl;
-                                // cout << "   g3d " << group_3D_table[p * kHard + q + n * kHard_squared + dec] << endl;
-                                // cout << "   numerator " << numerator[ind] << endl;
-                                // cout << "   denominator " << denominator[ind] << endl;
-                                // cout << "   wx_r_table " << wx_r_table[ind_j] << endl;
-                                cout << "numerator[" << ind << "] adress " << &numerator[ind] << endl;
-                                cout << "numerator[" << ind << "] " << numerator[ind] << endl;
-                                cout << "col_ind[287] address " << &column_ind[287] << endl;
-                            }
+                            //if (my_rank == 0 && row_index == 277 && j_r == 874 && n==12)
+                            //{
+                            //cout << "n " << n << "; k " << k << "; p " << p << "; q " << q << "; ind " << ind << endl;
+                            //cout << "   Rank: " << my_rank << " col_ind[287] " << column_ind[287] << " " << ind_j << endl;
+                            // cout << "   ind " << ind << endl;
+                            // cout << "   kaiser_window " << kaiser_window[p * kHard + q] << endl;
+                            // cout << "   g3d " << group_3D_table[p * kHard + q + n * kHard_squared + dec] << endl;
+                            // cout << "   numerator " << numerator[ind] << endl;
+                            // cout << "   denominator " << denominator[ind] << endl;
+                            // cout << "   wx_r_table " << wx_r_table[ind_j] << endl;
+                            // cout << "numerator[" << ind << "] address " << &numerator[ind] << endl;
+                            // cout << "numerator[" << ind << "] " << numerator[ind] << endl;
+                            // cout << "col_ind[287] address " << &column_ind[287] << endl;
+                            //}
 
                             numerator[ind] += kaiser_window[p * kHard + q] * wx_r_table[ind_j] *
                                               group_3D_table[p * kHard + q + n * kHard_squared + dec];
@@ -233,7 +233,7 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
     } //! End of loop on i_r
     MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank: " << my_rank << " clearing memory " << endl;
+    //cout << "Rank: " << my_rank << " clearing memory " << endl;
     my_patch_table.clear();
     group_3D_table.clear();
     wx_r_table.clear();
@@ -243,17 +243,17 @@ void bm3d_1st_step(const float sigma, vector<float> const &img_noisy, vector<flo
     coef_norm.clear();
     coef_norm_inv.clear();
     hadamard_tmp.clear();
-    cout << "Rank: " << my_rank << " finished clearing memory " << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank: " << my_rank << " before reconstruction" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank: " << my_rank << " finished clearing memory " << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank: " << my_rank << " before reconstruction" << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
     //! Final reconstruction
     for (unsigned k = 0; k < width * local_rows; k++)
         img_basic[k] = numerator[k] / denominator[k];
-    MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank " << my_rank << " finished final reconstruction" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
+    //cout << "Rank " << my_rank << " finished final reconstruction" << endl;
+    //MPI_Barrier(MPI_COMM_WORLD);
 }
 
 /**
@@ -313,7 +313,9 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
     //! Precompute Bloc-Matching
     vector<vector<unsigned>> my_patch_table;
     precompute_BM(my_patch_table, img_basic, width, height, kWien, nWien, pWien, tauMatch, ranks, my_rank, local_rows);
-
+    cout << "Rank: " << my_rank << " finished precompute_BM" << endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
     //! Preprocessing of Bior table
     vector<float> lpd, hpd, lpr, hpr;
     bior15_coef(lpd, hpd, lpr, hpr);
@@ -335,24 +337,27 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
     //! Loop on i_r
     for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
     {
-        const unsigned i_r = row_ind[ind_i];
-        if (row_ind[ind_i] >= my_min && row_ind[ind_i] < my_max)
+        const unsigned row_index = row_ind[ind_i];
+        if (row_index >= my_min && row_index < my_max)
         {
             //! Update of DCT_table_2D
-            bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd,
+            bior_2d_process(table_2D_img, img_noisy, nWien, width, kWien, row_index, pWien, row_ind[0], row_ind.back(), lpd,
                             hpd);
-            bior_2d_process(table_2D_est, img_basic, nWien, width, kWien, i_r, pWien, row_ind[0], row_ind.back(), lpd,
+            bior_2d_process(table_2D_est, img_basic, nWien, width, kWien, row_index, pWien, row_ind[0], row_ind.back(), lpd,
                             hpd);
 
             wx_r_table.clear();
             group_3D_table.clear();
-
+            cout << "       Rank: " << my_rank << " Finished Bior" << endl;
+            MPI_Barrier(MPI_COMM_WORLD);
+            cout << "       Rank: " << my_rank << " starting first ind_j loop" << endl;
             //! Loop on j_r
             for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
             {
+                //cout << "           Rank: " << my_rank << " ind_J" <<ind_j<< endl;
                 //! Initialization
                 const unsigned j_r = column_ind[ind_j];
-                const unsigned k_r = (i_r - my_min + nWien) * width + j_r;
+                const unsigned k_r = (row_index - my_min + nWien) * width + j_r;
                 // const unsigned k_r = i_r * width + j_r;
 
                 //! Number of similar patches
@@ -364,7 +369,7 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
 
                 for (unsigned n = 0; n < nSx_r; n++)
                 {
-                    const unsigned ind = my_patch_table[k_r][n] + (nWien - i_r) * width;
+                    const unsigned ind = my_patch_table[k_r][n] + (nWien - row_index) * width;
                     for (unsigned k = 0; k < kWien_2; k++)
                     {
                         group_3D_est[n + k * nSx_r + 0] = table_2D_est[k + ind * kWien_2 + 0];
@@ -385,8 +390,8 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
                 //! Save weighting
 
                 wx_r_table.push_back(weight);
-
             } //! End of loop on j_r
+            cout << "       Rank: " << my_rank << " finished first ind_j loop" << endl;
 
             //!  Apply 2D bior inverse
             bior_2d_inverse(group_3D_table, kWien, lpr, hpr);
@@ -396,7 +401,7 @@ void bm3d_2nd_step(const float sigma, vector<float> const &img_noisy, vector<flo
             for (unsigned ind_j = 0; ind_j < column_ind.size(); ind_j++)
             {
                 const unsigned j_r = column_ind[ind_j];
-                const unsigned k_r = i_r * width + j_r;
+                const unsigned k_r = (row_index -my_min+nWien)* width + j_r;
                 const unsigned nSx_r = my_patch_table[k_r].size();
 
                 for (unsigned n = 0; n < nSx_r; n++)
