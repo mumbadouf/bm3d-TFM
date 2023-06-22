@@ -10,7 +10,6 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 /**
  * @file lib_transforms.cpp
  * @brief 1D and 2D wavelet transforms
@@ -20,7 +19,8 @@
 
 #include "lib_transforms.h"
 #include <cmath>
-
+#include <iostream>
+#include <mpi.h>
 
 using namespace std;
 
@@ -40,19 +40,23 @@ using namespace std;
  * @return none.
  **/
 void bior_2d_forward(
-    vector<float> const& img
-,   vector<float> &bior_table_2D
-,   const unsigned kHard
-,   const unsigned d_i
-,   const unsigned width
-,   const unsigned d_o
-,   vector<float> const& lpd
-,   vector<float> const& hpd
-){
+        vector<float> const &img, vector<float> &bior_table_2D, const unsigned kHard, const unsigned d_i,
+        const unsigned width, const unsigned d_o, vector<float> const &lpd, vector<float> const &hpd)
+{
+    unsigned size = img.size();
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     //! Initializing bior_table_2D
     for (unsigned i = 0; i < kHard; i++)
         for (unsigned j = 0; j < kHard; j++)
+        {
+            //    if(my_rank==1 && (i * width + j + d_i) > size ){
+            //     //cout << "input image size: " << size << endl;
+            //     cout << "img[i * width + j + d_i]: " << i * width + j + d_i << endl;
+            // }
+
             bior_table_2D[i * kHard + j + d_o] = img[i * width + j + d_i];
+        }
 
     const unsigned iter_max = log2(kHard);
     unsigned N_1 = kHard;
@@ -129,12 +133,8 @@ void bior_2d_forward(
  * @return none.
  **/
 void bior_2d_inverse(
-    vector<float> &signal
-,   const unsigned N
-,   const unsigned d_s
-,   vector<float> const& lpr
-,   vector<float> const& hpr
-){
+        vector<float> &signal, const unsigned N, const unsigned d_s, vector<float> const &lpr, vector<float> const &hpr)
+{
     //! Initialization
     const unsigned iter_max = log2(N);
     unsigned N_1 = 2;
@@ -209,37 +209,34 @@ void bior_2d_inverse(
  * @param high_freq_backward: high frequencies backward filter.
  **/
 void bior15_coef(
-    vector<float> &low_freq_forward
-,   vector<float> &high_freq_forward
-,   vector<float> &low_freq_backward
-,   vector<float> &high_freq_backward
-){
+        vector<float> &low_freq_forward, vector<float> &high_freq_forward, vector<float> &low_freq_backward, vector<float> &high_freq_backward)
+{
     const float coef_norm = 1.f / (sqrtf(2.f) * 128.f);
     const float sqrt2_inv = 1.f / sqrtf(2.f);
 
     low_freq_forward.resize(10);
-    low_freq_forward[0] =  3.f  ;
-    low_freq_forward[1] = -3.f  ;
-    low_freq_forward[2] = -22.f ;
-    low_freq_forward[3] =  22.f ;
-    low_freq_forward[4] =  128.f;
-    low_freq_forward[5] =  128.f;
-    low_freq_forward[6] =  22.f ;
-    low_freq_forward[7] = -22.f ;
-    low_freq_forward[8] = -3.f  ;
-    low_freq_forward[9] =  3.f  ;
+    low_freq_forward[0] = 3.f;
+    low_freq_forward[1] = -3.f;
+    low_freq_forward[2] = -22.f;
+    low_freq_forward[3] = 22.f;
+    low_freq_forward[4] = 128.f;
+    low_freq_forward[5] = 128.f;
+    low_freq_forward[6] = 22.f;
+    low_freq_forward[7] = -22.f;
+    low_freq_forward[8] = -3.f;
+    low_freq_forward[9] = 3.f;
 
     high_freq_forward.resize(10);
-    high_freq_forward[0] =  0.f;
-    high_freq_forward[1] =  0.f;
-    high_freq_forward[2] =  0.f;
-    high_freq_forward[3] =  0.f;
+    high_freq_forward[0] = 0.f;
+    high_freq_forward[1] = 0.f;
+    high_freq_forward[2] = 0.f;
+    high_freq_forward[3] = 0.f;
     high_freq_forward[4] = -sqrt2_inv;
-    high_freq_forward[5] =  sqrt2_inv;
-    high_freq_forward[6] =  0.f;
-    high_freq_forward[7] =  0.f;
-    high_freq_forward[8] =  0.f;
-    high_freq_forward[9] =  0.f;
+    high_freq_forward[5] = sqrt2_inv;
+    high_freq_forward[6] = 0.f;
+    high_freq_forward[7] = 0.f;
+    high_freq_forward[8] = 0.f;
+    high_freq_forward[9] = 0.f;
 
     low_freq_backward.resize(10);
     low_freq_backward[0] = 0.f;
@@ -254,16 +251,16 @@ void bior15_coef(
     low_freq_backward[9] = 0.f;
 
     high_freq_backward.resize(10);
-    high_freq_backward[0] =  3.f  ;
-    high_freq_backward[1] =  3.f  ;
-    high_freq_backward[2] = -22.f ;
-    high_freq_backward[3] = -22.f ;
-    high_freq_backward[4] =  128.f;
+    high_freq_backward[0] = 3.f;
+    high_freq_backward[1] = 3.f;
+    high_freq_backward[2] = -22.f;
+    high_freq_backward[3] = -22.f;
+    high_freq_backward[4] = 128.f;
     high_freq_backward[5] = -128.f;
-    high_freq_backward[6] =  22.f ;
-    high_freq_backward[7] =  22.f ;
-    high_freq_backward[8] = -3.f  ;
-    high_freq_backward[9] = -3.f  ;
+    high_freq_backward[6] = 22.f;
+    high_freq_backward[7] = 22.f;
+    high_freq_backward[8] = -3.f;
+    high_freq_backward[9] = -3.f;
 
     for (unsigned k = 0; k < 10; k++)
     {
@@ -284,11 +281,8 @@ void bior15_coef(
  * @return None.
  **/
 void hadamard_transform(
-    vector<float> &vec
-,   vector<float> &tmp
-,   const unsigned N
-,   const unsigned D
-){
+        vector<float> &vec, vector<float> &tmp, const unsigned N, const unsigned D)
+{
     if (N == 1)
         return;
     else if (N == 2)
@@ -324,8 +318,8 @@ void hadamard_transform(
  * @return n;
  **/
 unsigned log2(
-    const unsigned N
-){
+        const unsigned N)
+{
     unsigned k = 1;
     unsigned n = 0;
     while (k < N)
@@ -346,10 +340,8 @@ unsigned log2(
  * @return none.
  **/
 void per_ext_ind(
-    vector<unsigned> &ind_per
-,   const unsigned N
-,   const unsigned L
-){
+        vector<unsigned> &ind_per, const unsigned N, const unsigned L)
+{
     for (unsigned k = 0; k < N; k++)
         ind_per[k + L] = k;
 
@@ -358,11 +350,11 @@ void per_ext_ind(
         ind1 += N;
     unsigned ind2 = 0;
     unsigned k = 0;
-    while(k < L)
+    while (k < L)
     {
-        ind_per[k] = (unsigned) ind1;
+        ind_per[k] = (unsigned)ind1;
         ind_per[k + L + N] = ind2;
-        ind1 = ((unsigned) ind1 < N - 1 ? (unsigned) ind1 + 1 : 0);
+        ind1 = ((unsigned)ind1 < N - 1 ? (unsigned)ind1 + 1 : 0);
         ind2 = (ind2 < N - 1 ? ind2 + 1 : 0);
         k++;
     }

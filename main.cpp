@@ -104,16 +104,14 @@ int main(int argc, char **argv)
         widthBoundary = width + 2 * nHard;
         makeSymmetrical(img_noisy, img_sym_noisy, width, height, nHard);
     }
-    else
+    else if (testing == 0)
     {
-        if (testing == 0)
-        {
-            nHard = 16; // 16; //! Half ranks of the search window
-            nWien = 16; // 16; //! Half ranks of the search window
-            patch_size = 8;
-            kHard = patch_size;
-            kWien = patch_size;
-        }
+
+        nHard = 16; // 16; //! Half ranks of the search window
+        nWien = 16; // 16; //! Half ranks of the search window
+        patch_size = 8;
+        kHard = patch_size;
+        kWien = patch_size;
     }
 
     MPI_Bcast(&heightBoundary, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
@@ -130,7 +128,7 @@ int main(int argc, char **argv)
     }
     for (int rank = 0; rank < ranks; rank++)
     {
-        counts[rank] += int(2 * nHard * widthBoundary);
+        counts[rank] += int(2 * nHard * widthBoundary+(2*pHard+1)*widthBoundary) ;
         displs[rank] -= int(nHard * widthBoundary);
     }
     if (my_rank == ranks - 1)
@@ -138,8 +136,9 @@ int main(int argc, char **argv)
         local_rows += (heightBoundary - (2 * nHard)) % ranks;
         counts[ranks - 1] += ((heightBoundary - (2 * nHard)) % ranks) * widthBoundary;
     }
-    // cout << "Rank: " << my_rank << " Count: " << counts[my_rank] << " displs: " << displs[my_rank] << endl;
-    my_img_sym_noisy.resize((local_rows + (2 * nHard)) * widthBoundary);
+
+    cout << "Rank: " << my_rank << " Count: " << counts[my_rank] << " displs: " << displs[my_rank] << endl;
+    my_img_sym_noisy.resize(counts[my_rank]);
     // cout << "Rank: " << my_rank << " Before Scatter" << endl;
     // MPI_Barrier(MPI_COMM_WORLD);
     // MPI_Barrier(MPI_COMM_WORLD);
@@ -157,6 +156,7 @@ int main(int argc, char **argv)
     {
         bior15_coef(lpd, hpd, lpr, hpr);
         ind_initialize(row_ind, heightBoundary - kHard + 1, nHard, pHard);
+        // print_vector("row_ind:", row_ind, row_ind.size(),1 );
         vector<float> table_2D_temp(my_table_2D_size, 0.0f);
         int rank = 0;
         unsigned rank_max = (rank + 1) * (local_rows) + nHard;
@@ -192,9 +192,9 @@ int main(int argc, char **argv)
     bm3d_1st_step(sigma, my_img_sym_noisy, my_img_sym_basic, widthBoundary, heightBoundary, nHard, kHard, pHard, ranks,
                   my_rank, int(local_rows + (2 * nHard)), my_table_2D);
 
-    cout << "Rank: " << my_rank << " finished step 1" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    // cout << "Rank: " << my_rank << " finished step 1" << endl;
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     vector<int> counts_type(ranks);
     vector<int> displs_type(ranks);
@@ -213,11 +213,11 @@ int main(int argc, char **argv)
     MPI_Datatype vector_type;
     MPI_Type_vector(1, widthBoundary - 2 * nHard, widthBoundary, MPI_FLOAT, &vector_type);
     MPI_Type_commit(&vector_type);
-    cout << "Rank: " << my_rank << " Before Gather step 1" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-    // MPI_Gatherv(&my_img_sym_basic[nHard * widthBoundary], int(local_rows * widthBoundary), MPI_FLOAT,
-    //             &img_sym_basic[nHard * widthBoundary], &counts[0], &displs[0], MPI_FLOAT, 0, MPI_COMM_WORLD);
+    // cout << "Rank: " << my_rank << " Before Gather step 1" << endl;
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //  MPI_Gatherv(&my_img_sym_basic[nHard * widthBoundary], int(local_rows * widthBoundary), MPI_FLOAT,
+    //              &img_sym_basic[nHard * widthBoundary], &counts[0], &displs[0], MPI_FLOAT, 0, MPI_COMM_WORLD);
     MPI_Gatherv(&my_img_sym_basic[nHard * widthBoundary + nHard], counts_type[my_rank], vector_type,
                 &img_basic[0], &counts_type[0], &displs_type[0], vector_type, 0, MPI_COMM_WORLD);
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 
         makeSymmetrical(img_basic, img_sym_basic, width, height, nHard);
     }
-    cout << "Rank: " << my_rank << " Before Scatter 2" << endl;
+    // cout << "Rank: " << my_rank << " Before Scatter 2" << endl;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     //! Denoising, 2nd Step
@@ -246,9 +246,9 @@ int main(int argc, char **argv)
 
     MPI_Scatterv(&img_sym_basic[0], &counts[0], &displs[0], MPI_FLOAT, &my_img_sym_basic[0], counts[my_rank], MPI_FLOAT,
                  0, MPI_COMM_WORLD);
-    cout << "Rank: " << my_rank << " Scatter after 2" << endl;
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
+    // cout << "Rank: " << my_rank << " Scatter after 2" << endl;
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     my_table_2D_size = (2 * nWien + 1) * widthBoundary * kWien * kWien;
     vector<float> table_2D_img(my_table_2D_size, 0.0f);
     vector<float> table_2D_est(my_table_2D_size, 0.0f);
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         vector<float> table_2D_temp_img(my_table_2D_size, 0.0f);
         vector<float> table_2D_temp_est(my_table_2D_size, 0.0f);
         int rank = 0;
-        unsigned rank_max =  (rank + 1) * (local_rows) + nWien;
+        unsigned rank_max = (rank + 1) * (local_rows) + nWien;
         for (unsigned ind_i = 0; ind_i < row_ind.size(); ind_i++)
         {
             const unsigned i_row = row_ind[ind_i];
@@ -287,7 +287,6 @@ int main(int argc, char **argv)
         MPI_Recv(&table_2D_img[0], my_table_2D_size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(&table_2D_est[0], my_table_2D_size, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-
 
     cout << "Rank: " << my_rank << " starting step 2" << endl;
     bm3d_2nd_step(sigma, my_img_sym_noisy, my_img_sym_basic, my_img_sym_denoised, widthBoundary, heightBoundary, nWien, kWien,
